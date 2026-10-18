@@ -16,7 +16,7 @@ import { t, tr, setLang, getLang } from "./i18n.js";
 import { sfx, unlockAudio, setVolume, updateListener, tickAudio, suspend } from "./audio.js";
 import { loadGame, saveGame, clearGame, loadSettings, saveSettings, loadProgress, unlockChapter } from "./save.js";
 
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 const EYE = 1.5;            // рост Роберта (высота глаз), метры
 const RADIUS = 0.28;        // «толщина» Роберта для столкновений
 const WALK = 1.9, RUN = 3.3; // скорость, м/с
