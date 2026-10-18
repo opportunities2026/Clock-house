@@ -208,8 +208,8 @@ function takeLantern() {
   handLight.intensity = 4.5; handLight.distance = 10; handLight.color.set("#ffb868");
   if (!heldLantern) {
     heldLantern = lanternMesh();
-    heldLantern.scale.setScalar(0.9);
-    heldLantern.position.set(0.3, -0.42, -0.55);
+    heldLantern.scale.setScalar(0.7);
+    heldLantern.position.set(0.32, -0.46, -0.6);
     heldLantern.traverse((o) => { o.userData.noRay = true; });
     camera.add(heldLantern);
   }
@@ -238,6 +238,7 @@ async function onCaught() {
   player.x = cp.x * CELL; player.z = cp.z * CELL;
   player.yaw = THREE.MathUtils.degToRad(cp.angle || 0); player.pitch = 0;
   inspect = null; camAnim = null; UI.setInspectUI(false); document.body.classList.remove("hiding");
+  if (heldLantern) heldLantern.visible = true;
   controls.walkEnabled = true;
   playerCamera(camera);
   owl.reset();
@@ -394,10 +395,10 @@ function enterInspect(id) {
   controls.reset();
   controls.walkEnabled = false;
   inspectPose(ins, tmpObj);
+  if (heldLantern) heldLantern.visible = false;
   if (ins.hide) {
     ins.anim?.open();
     document.body.classList.add("hiding");
-    if (heldLantern) heldLantern.visible = false;
     startCamAnim(tmpObj.position.clone(), tmpObj.quaternion.clone(), 0.7, () => { ins.anim?.close(); sfx.breath(false, 2); });
   } else {
     startCamAnim(tmpObj.position.clone(), tmpObj.quaternion.clone(), 0.65, () => ins.onEnter?.());
@@ -412,8 +413,8 @@ function leaveInspect() {
     const a = inspect.anim;
     a?.open(); setTimeout(() => a?.close(), 900);
     document.body.classList.remove("hiding");
-    if (heldLantern) heldLantern.visible = true;
   }
+  if (heldLantern) heldLantern.visible = true;
   inspect = null;
   controls.walkEnabled = true;
   playerCamera(tmpObj);
