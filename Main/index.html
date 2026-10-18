@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Дом часовщика">
+  <meta name="theme-color" content="#0b0806">
+  <title>Дом часовщика</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+    { "imports": { "three": "./lib/three.module.min.js" } }
+  </script>
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <div id="vignette"></div>
+  <div id="crosshair"></div>
+  <div id="joystick"><div id="joystick-knob"></div></div>
+
+  <!-- Интерфейс во время игры -->
+  <div id="hud">
+    <button id="btn-pause" class="icon-btn" aria-label="Пауза">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="hud-right">
+      <button id="btn-hint" class="icon-btn" aria-label="Подсказка">
+        <svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
+      </button>
+      <button id="btn-diary" class="icon-btn" aria-label="Дневник">
+        <svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z M5 17a3 3 0 0 1 3-3h11" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <button id="btn-back" class="back-btn">
+      <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span data-t="back">Назад</span>
+    </button>
+    <div id="inventory" class="empty"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <div id="fade"></div>
+
+  <!-- Главное меню -->
+  <section id="screen-menu" class="screen menu-bg">
+    <div class="menu-card">
+      <div class="logo-gear" aria-hidden="true"></div>
+      <h1 data-t="title">Дом часовщика</h1>
+      <p class="subtitle" data-t="subtitle">Глава 1 · Три двери</p>
+      <div class="menu-buttons">
+        <button id="btn-continue" class="btn primary" data-t="continue">Продолжить</button>
+        <button id="btn-new" class="btn" data-t="newGame">Новая игра</button>
+        <button id="btn-settings" class="btn" data-t="settings">Настройки</button>
+      </div>
+      <p class="rotate-hint" data-t="rotateDevice"></p>
+      <p id="version" class="version"></p>
+    </div>
+  </section>
+
+  <!-- Загрузка -->
+  <section id="screen-loading" class="screen menu-bg">
+    <div class="menu-card">
+      <div class="logo-gear spinning" aria-hidden="true"></div>
+      <p class="subtitle" data-t="loading">Загрузка дома…</p>
+    </div>
+  </section>
+
+  <!-- Как играть -->
+  <section id="screen-howto" class="screen dim">
+    <div class="menu-card small">
+      <h2 data-t="controlsTitle">Как играть</h2>
+      <div class="howto">
+        <div class="howto-row"><span class="howto-icon">👆</span><p data-t="controlsTouch"></p></div>
+        <div class="howto-row keys"><span class="howto-icon">⌨️</span><p data-t="controlsKeys"></p></div>
+      </div>
+      <button id="btn-howto-ok" class="btn primary" data-t="beginAdventure">Войти в дом</button>
+    </div>
+  </section>
+
+  <!-- Пауза -->
+  <section id="screen-pause" class="screen dim">
+    <div class="menu-card small">
+      <h2 data-t="paused">Пауза</h2>
+      <div class="menu-buttons">
+        <button id="btn-resume" class="btn primary" data-t="resume">Продолжить</button>
+        <button id="btn-pause-settings" class="btn" data-t="settings">Настройки</button>
+        <button id="btn-tomenu" class="btn" data-t="toMenu">В главное меню</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Настройки -->
+  <section id="screen-settings" class="screen dim">
+    <div class="menu-card small settings">
+      <h2 data-t="settings">Настройки</h2>
+      <div class="set-row">
+        <label data-t="language">Язык</label>
+        <div class="seg">
+          <button data-lang="ru">Русский</button>
+          <button data-lang="en">English</button>
+        </div>
+      </div>
+      <div class="set-row">
+        <label for="set-volume" data-t="volume">Громкость</label>
+        <input id="set-volume" type="range" min="0" max="1" step="0.05">
+      </div>
+      <div class="set-row">
+        <label for="set-sens" data-t="sensitivity">Чувствительность</label>
+        <input id="set-sens" type="range" min="0.4" max="2" step="0.1">
+      </div>
+      <div class="set-row">
+        <label data-t="quality">Качество графики</label>
+        <div class="seg">
+          <button data-quality="high" data-t="qualityHigh">Высокое</button>
+          <button data-quality="low" data-t="qualityLow">Экономное</button>
+        </div>
+      </div>
+      <div class="menu-buttons">
+        <button id="btn-settings-back" class="btn primary" data-t="back">Назад</button>
+        <button id="btn-reset" class="btn danger" data-t="resetProgress">Начать главу заново</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Конец главы -->
+  <section id="screen-end" class="screen menu-bg">
+    <div class="menu-card">
+      <div class="logo-gear" aria-hidden="true"></div>
+      <h1 id="end-title"></h1>
+      <p id="end-text" class="story"></p>
+      <button id="btn-end-menu" class="btn primary" data-t="endButton">В главное меню</button>
+    </div>
+  </section>
+
+  <!-- Записка -->
+  <div id="note-overlay" class="overlay">
+    <article class="paper">
+      <h3 id="note-title"></h3>
+      <p id="note-text"></p>
+      <p class="tap-hint" data-t="tapToContinue">Нажми, чтобы продолжить</p>
+    </article>
+  </div>
+
+  <!-- Дневник -->
+  <div id="diary-overlay" class="overlay">
+    <div class="diary">
+      <h2 data-t="diary">Дневник</h2>
+      <div id="diary-list"></div>
+      <button id="btn-diary-close" class="btn" data-t="close">Закрыть</button>
+    </div>
+  </div>
+
+  <!-- Подтверждение -->
+  <div id="confirm" class="overlay">
+    <div class="menu-card small">
+      <p id="confirm-text"></p>
+      <div class="menu-buttons row">
+        <button id="confirm-yes" class="btn danger" data-t="yes">Да</button>
+        <button id="confirm-no" class="btn primary" data-t="no">Нет</button>
+      </div>
+    </div>
+  </div>
+
+  <noscript>Для игры нужен JavaScript.</noscript>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

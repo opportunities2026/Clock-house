@@ -218,3 +218,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Clock House: библиотеки игры храним в репозитории
+!Main/lib/
