@@ -6,6 +6,7 @@ import { LEVELS, ORDER } from "../levels/index.js";
 import { buildWorld, CELL } from "./world.js";
 import { BUILDERS } from "./props.js";
 import { lanternMesh } from "./props2.js";
+import "./props3.js";
 import { Owl } from "./owl.js";
 import { buildDoor } from "./doors.js";
 import { Controls } from "./controls.js";
@@ -182,6 +183,8 @@ const G = {
     else { obj.updateWorldMatrix(true, false); v.applyMatrix4(obj.matrixWorld); }
     return v;
   },
+  isBlocked: (cx, cz) => isBlockedCell(cx, cz),
+  addCollider(minX, minZ, maxX, maxZ) { colliders.push([minX, minZ, maxX, maxZ]); },
   setBlocked(cx, cz, on) { const k = cx + "," + cz; if (on) blocked.add(k); else blocked.delete(k); },
   zoneOf(def) { return world.themeOf(Math.floor(def.x), Math.floor(def.z)); },
   onLang(fn) { langListeners.push(fn); },

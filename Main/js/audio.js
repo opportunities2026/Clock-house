@@ -388,6 +388,41 @@ Object.assign(sfx, {
   },
 });
 
+// ---------------------------------------------------------------- звуки главы 3
+Object.assign(sfx, {
+  // колокол: низкий, средний или высокий
+  bell(pos, which = "mid") {
+    if (!ctx) return;
+    const d = out(pos, 1.2), t = ctx.currentTime;
+    const base = { low: 220, mid: 330, high: 494 }[which] || 330;
+    for (const [k, g, dur] of [[1, 0.3, 2.6], [2.0, 0.12, 1.8], [2.76, 0.08, 1.4], [5.4, 0.04, 0.8], [0.5, 0.1, 3]]) {
+      tone({ t, freq: base * k, d: dur, gain: g, dest: d });
+    }
+    burst({ t, type: "bandpass", freq: base * 4, q: 3, d: 0.04, gain: 0.25, dest: d });
+  },
+
+  crystal(pos) {
+    if (!ctx) return;
+    const d = out(pos, 1.0), t = ctx.currentTime;
+    [1318, 1760, 2093, 2637].forEach((f, i) => tone({ t: t + i * 0.09, freq: f, d: 1.4, gain: 0.07, dest: d }));
+  },
+
+  mirror(pos) {
+    if (!ctx) return;
+    const d = out(pos, 0.4), t = ctx.currentTime;
+    creakGrain(t, d, 0.25, 0.5, 1400);
+    burst({ t: t + 0.25, type: "bandpass", freq: 900, q: 2, d: 0.05, gain: 0.4, dest: d });
+  },
+
+  weight(pos) {
+    if (!ctx) return;
+    const d = out(pos, 0.5), t = ctx.currentTime;
+    tone({ t, freq: 110, to: 60, d: 0.25, gain: 0.5, dest: d });
+    for (const f of [700, 1650]) tone({ t, freq: f, d: 0.6, gain: 0.05, dest: d });
+    burst({ t, type: "lowpass", freq: 900, d: 0.06, gain: 0.5, dest: d });
+  },
+});
+
 // Постоянный звук, который можно двигать (жужжание механизма совы)
 export function movingLoop() {
   if (!ctx) return null;

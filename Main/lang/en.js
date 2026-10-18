@@ -91,4 +91,14 @@ export default {
   owlSleepsMsg: "The Guardian sleeps peacefully, ticking softly.",
   perchMsg: "The Guardian's nest on a tall post.",
   lockedLevers: "A door with levers. Tap the levers to raise or lower them.",
+  // chapter 3
+  lockedBells: "Three bells hang on the door: big, middle and small. Ring them!",
+  lockedBeam: "There is a crystal in the door. It's waiting for a moonbeam.",
+  pendulumMsg: "The giant pendulum of the tower clock. Tick… tock… tick… tock…",
+  mirrorDone: "The mirrors are set right, the beam is shining.",
+  balanceEmpty: "The right pan is empty. Find the weights and put them here.",
+  needMoreWeights: "Not enough yet. Find the other weights!",
+  weightPlaced: "The weight settles on the pan. The scales sway!",
+  balanced: "The scales balance! A secret drawer clicks open below.",
+  drawerLocked: "The drawer is locked. It will open when the scales balance.",
 };

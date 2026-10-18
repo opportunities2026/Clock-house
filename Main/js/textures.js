@@ -338,7 +338,42 @@ const WALL_STYLES = {
   storage:  (ctx, r) => { bricks(ctx, r); ctx.fillStyle = "rgba(20,14,8,0.35)"; ctx.fillRect(0, 0, WALL_W, WALL_H); ctx.fillStyle = "#2a1c10"; ctx.fillRect(0, WALL_H - 40, WALL_W, 40); aging(ctx, r, 2); },
   nest:     (ctx, r) => { stoneBlocks(ctx, r, [0.17, 0.14, 0.11], 0.4); ctx.fillStyle = "rgba(200,150,60,0.06)"; ctx.fillRect(0, 0, WALL_W, WALL_H); aging(ctx, r, 1.5); },
   stairsUp: (ctx, r) => { stoneBlocks(ctx, r, [0.2, 0.18, 0.16], 0.3); aging(ctx, r, 1); },
+  // глава 3: часовая башня
+  tower:    (ctx, r) => { stoneBlocks(ctx, r, [0.2, 0.17, 0.14], 0.3); beams(ctx, r); aging(ctx, r, 1.2); },
+  stars:    (ctx, r) => { starPaper(ctx, r); wainscot(ctx, r, "#2a1a10", 0.9); crown(ctx, "#8a6a30"); aging(ctx, r, 1.2); },
+  mech:     (ctx, r) => { bricks(ctx, r); ctx.fillStyle = "rgba(60,40,10,0.35)"; ctx.fillRect(0, 0, WALL_W, WALL_H); beams(ctx, r); aging(ctx, r, 1.6); },
 };
+
+// Деревянные балки на стене (фахверк)
+function beams(ctx, r) {
+  const wood = "#3a2614";
+  grain(ctx, 0, 60, WALL_W, 46, wood, r, false, 0.6);
+  grain(ctx, 0, WALL_H - 330, WALL_W, 40, wood, r, false, 0.6);
+  grain(ctx, WALL_W / 2 - 22, 60, 44, WALL_H - 60, wood, r, true, 0.6);
+  ctx.fillStyle = "rgba(0,0,0,0.5)";
+  for (const [x, y, w, h] of [[0, 104, WALL_W, 4], [0, WALL_H - 292, WALL_W, 4], [WALL_W / 2 + 22, 60, 4, WALL_H - 60]]) ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = "#1a1410";
+  for (const [x, y] of [[WALL_W / 2 - 10, 82], [WALL_W / 2 + 10, 82], [WALL_W / 2, WALL_H - 310]]) { ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill(); }
+}
+
+// Тёмно-синие обои с золотыми звёздами
+function starPaper(ctx, r) {
+  ctx.fillStyle = "#141c34"; ctx.fillRect(0, 0, WALL_W, WALL_H);
+  for (let i = 0; i < 70; i++) {
+    const x = (i * 131) % WALL_W, y = (i * 211) % (WALL_H - 300), s = 6 + (i % 4) * 4;
+    ctx.fillStyle = i % 5 ? "rgba(214,178,110,0.55)" : "rgba(240,220,160,0.8)";
+    ctx.beginPath();
+    for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2 - Math.PI / 2, rr = k % 2 ? s * 0.4 : s; k ? ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr) : ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+    ctx.fill();
+  }
+  // полумесяцы
+  for (let i = 0; i < 4; i++) {
+    const x = 60 + i * 120, y = 140 + (i % 2) * 260;
+    ctx.fillStyle = "rgba(214,178,110,0.5)"; ctx.beginPath(); ctx.arc(x, y, 16, 0, 7); ctx.fill();
+    ctx.fillStyle = "#141c34"; ctx.beginPath(); ctx.arc(x + 7, y - 4, 14, 0, 7); ctx.fill();
+  }
+  noise(ctx, WALL_W, WALL_H, 0.04, r);
+}
 
 const FLOOR_STYLES = {
   hall: () => [herringbone("#6e4426", 11), 2],
@@ -351,6 +386,9 @@ const FLOOR_STYLES = {
   storage: () => [planks("#3a2a1c", 18, 1.6), 2],
   nest: () => [planks("#4a3420", 19, 0.8), 2],
   stairsUp: () => [stoneFloor(20), 1.5],
+  tower: () => [planks("#4a3420", 22, 1.2), 2],
+  stars: () => [herringbone("#4a2e1a", 23), 2],
+  mech: () => [planks("#5a4630", 24, 1.4), 2],
 };
 
 function darken(c, k) {
@@ -383,7 +421,7 @@ export function roomMaterials(theme) {
       roughness: theme === "cellar" ? 0.6 : STONE_THEMES.includes(theme) ? 0.9 : 0.55, metalness: 0,
     });
     floor.userData.metersPerRepeat = 3 / (rep / 2);
-    const ceilColor = { workshop: "#8a7c6a", cellar: "#2e2a26", storage: "#3a332c", nest: "#3a3028", stairs: "#2e2a26", stairsUp: "#3a352e" }[theme] || "#c9bfa9";
+    const ceilColor = { tower: "#2a2018", stars: "#141c34", mech: "#2a2018", workshop: "#8a7c6a", cellar: "#2e2a26", storage: "#3a332c", nest: "#3a3028", stairs: "#2e2a26", stairsUp: "#3a352e" }[theme] || "#c9bfa9";
     const cc = plasterTex(ceilColor, 99 + theme.length);
     const ceil = new THREE.MeshStandardMaterial({ map: tex(cc), roughness: 1 });
     return { wall, floor, ceil };

@@ -74,6 +74,8 @@ export function buildDoor(def, G) {
   else if (lock.type === "code") codeLock(door, lock, lockG, G, brass);
   else if (lock.type === "gears") gearLock(door, lock, lockG, G, brass);
   else if (lock.type === "levers") leverLock(door, lock, lockG, G, brass);
+  else if (lock.type === "bells") bellLock(door, lock, lockG, G, brass);
+  else if (lock.type === "beam") beamLock(door, lock, lockG, G, brass);
 
   // Нажатие на саму створку
   G.onTap(leaf, () => {
@@ -85,6 +87,8 @@ export function buildDoor(def, G) {
     else if (lock.type === "code") G.say("lockedCode", null, 2500);
     else if (lock.type === "gears") G.say("lockedGears");
     else if (lock.type === "levers") G.say("lockedLevers", null, 2600);
+    else if (lock.type === "bells") G.say("lockedBells", null, 2600);
+    else if (lock.type === "beam") G.say("lockedBeam", null, 2800);
     return true;
   }, { owner: id });
 
@@ -93,6 +97,8 @@ export function buildDoor(def, G) {
     code: { pos: [0.1, 1.17, 0.55], target: [0.1, 1.12, 0] },
     gears: { pos: [0, 1.3, 1.05], target: [0, 1.3, 0] },
     levers: { pos: [0.05, 1.22, 0.75], target: [0.05, 1.12, 0] },
+    bells: { pos: [0, 1.45, 1.0], target: [0, 1.4, 0] },
+    beam: { pos: [0, 1.35, 0.8], target: [0, 1.3, 0] },
   };
   if (!door.isOpen) G.addInspect(id, g, views[lock.type] || views.key, null, () => !door.isOpen);
   return door;
@@ -284,4 +290,73 @@ function leverLock(door, lock, lg, G, brass) {
     }, { owner: door.def.id });
   }
   G.every((dt) => { for (const L of levers) L.pivot.rotation.x += (L.target - L.pivot.rotation.x) * Math.min(1, dt * 12); });
+}
+
+// Три колокола: позвони в правильном порядке
+function bellLock(door, lock, lg, G, brass) {
+  const seq = lock.sequence || ["low", "high", "mid"];
+  const wood = T.woodMaterial("#3a2212", { seed: 91 });
+  const y = 1.72, z = 0.03;
+  box(0.7, 0.06, 0.08, wood, 0, y, z + 0.05, lg);
+  for (const s of [-1, 1]) box(0.05, 0.12, 0.05, wood, s * 0.33, y - 0.06, z + 0.025, lg);
+  const history = [];
+  const kinds = [["low", 0.13, -0.22], ["mid", 0.1, 0], ["high", 0.075, 0.22]];
+  const bells = [];
+  for (const [kind, R, x] of kinds) {
+    const pts = [];
+    for (let i = 0; i <= 12; i++) {
+      const t = i / 12;
+      pts.push(new THREE.Vector2(R * (0.35 + 0.65 * Math.pow(t, 1.6)) + (t > 0.9 ? R * 0.12 : 0), -t * R * 2));
+    }
+    const pivot = new THREE.Group(); pivot.position.set(x, y - 0.03, z + 0.06); lg.add(pivot);
+    const bellMesh = new THREE.Mesh(new THREE.LatheGeometry(pts, 24), brass);
+    bellMesh.material = brass; pivot.add(bellMesh);
+    bellMesh.geometry.computeVertexNormals();
+    const inner = new THREE.Mesh(new THREE.LatheGeometry(pts, 24), T.plain("#2a1a08", 0.6, { side: THREE.BackSide }));
+    inner.scale.setScalar(0.96); pivot.add(inner);
+    const clapper = new THREE.Mesh(new THREE.SphereGeometry(R * 0.18, 10, 8), T.metal("#3a3a3a", 0.5));
+    clapper.position.y = -R * 1.8; pivot.add(clapper);
+    const b = { pivot, swing: 0, kind };
+    bells.push(b);
+    hitProxyBox(pivot, R * 2.4, R * 2.6, R * 2.4).position.set(0, -R, 0);
+    G.onTap(pivot, () => {
+      if (door.isOpen || door.solving) return false;
+      b.swing = 1;
+      sfx.bell(G.worldPos(pivot), kind);
+      history.push(kind);
+      if (history.length > seq.length) history.shift();
+      if (history.length === seq.length && history.every((k, i) => k === seq[i])) {
+        door.solving = true;
+        setTimeout(() => { sfx.unlock(G.worldPos(lg)); door.open(); }, 1600);
+      }
+      return true;
+    }, { owner: door.def.id });
+  }
+  G.every((dt, time) => {
+    for (const b of bells) {
+      b.swing *= Math.pow(0.25, dt);
+      b.pivot.rotation.x = Math.sin(time * 9) * 0.35 * b.swing;
+    }
+  });
+}
+
+// Хрустальный замок: открывается, когда в кристалл попадает лунный луч
+function beamLock(door, lock, lg, G, brass) {
+  const y = 1.3, z = 0.03;
+  rbox(0.26, 0.26, 0.03, 0.02, brass, 0, y, z + 0.01, lg);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.012, 8, 28), brass);
+  ring.position.set(0, y, z + 0.04); lg.add(ring);
+  const mat = new THREE.MeshStandardMaterial({ color: "#a8d8ff", emissive: "#4a8aff", emissiveIntensity: 0.25, roughness: 0.05, metalness: 0.1, transparent: true, opacity: 0.9 });
+  const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.07, 0), mat);
+  crystal.position.set(0, y, z + 0.08); crystal.scale.set(0.8, 1.2, 0.6); lg.add(crystal);
+  const lit = () => { mat.emissiveIntensity = 2.5; mat.emissive.set("#cfe6ff"); };
+  if (door.isOpen) lit();
+  G.onFlag(lock.flag, () => {
+    if (door.isOpen) return;
+    lit();
+    sfx.crystal(G.worldPos(crystal));
+    door.solving = true;
+    setTimeout(() => { sfx.unlock(G.worldPos(lg)); door.open(); }, 1500);
+  });
+  G.every((dt, time) => { crystal.rotation.y = time * 0.6; });
 }

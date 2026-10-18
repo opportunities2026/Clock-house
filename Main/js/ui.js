@@ -9,6 +9,7 @@ export const ICONS = {
   lantern: `<svg viewBox="0 0 64 64"><path d="M24 10a8 8 0 0 1 16 0" fill="none" stroke="#8a6326" stroke-width="3"/><rect x="20" y="14" width="24" height="6" rx="2" fill="#4a3a2a"/><rect x="22" y="20" width="20" height="28" rx="3" fill="#ffd27a" stroke="#4a3a2a" stroke-width="3"/><path d="M32 28c4 5 3 10 0 12-3-2-4-7 0-12z" fill="#ff8a20"/><rect x="18" y="48" width="28" height="6" rx="2" fill="#4a3a2a"/></svg>`,
   valve: `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="none" stroke="#b02a1e" stroke-width="6"/><path d="M32 10v44M10 32h44M17 17l30 30M47 17L17 47" stroke="#b02a1e" stroke-width="4"/><circle cx="32" cy="32" r="7" fill="#7a1a12"/></svg>`,
   hand: `<svg viewBox="0 0 64 64"><path d="M30 58h4l1-40h6L32 4 23 18h6z" fill="#2a2018" stroke="#c9a25a" stroke-width="1.5"/><circle cx="32" cy="32" r="4" fill="none" stroke="#c9a25a" stroke-width="2"/></svg>`,
+  weight: `<svg viewBox="0 0 64 64"><rect x="26" y="8" width="12" height="10" rx="3" fill="none" stroke="#c9a25a" stroke-width="3"/><path d="M16 20h32l6 34H10z" fill="#55504a" stroke="#2a2622" stroke-width="2"/></svg>`,
   note: `<svg viewBox="0 0 64 64"><path d="M14 8h28l10 10v38H14z" fill="#e9dcbc" stroke="#8a7350" stroke-width="2"/><path d="M20 26h24M20 33h24M20 40h18" stroke="#5a4a80" stroke-width="2.5"/></svg>`,
 };
 
@@ -30,6 +31,7 @@ export function renderInventory(list, defs, onTap) {
     b.className = "slot";
     b.setAttribute("aria-label", tr(def.name));
     b.innerHTML = ICONS[def.icon] || ICONS.note;
+    if (def.label) { const s = document.createElement("span"); s.className = "badge"; s.textContent = def.label; b.appendChild(s); }
     if (def.icon === "gear" && def.size) b.firstChild.style.transform = `scale(${0.6 + def.size * 3})`;
     b.addEventListener("click", (e) => { e.stopPropagation(); onTap(id); });
     el.appendChild(b);

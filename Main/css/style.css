@@ -219,3 +219,5 @@ body.chased #vignette {
 @keyframes danger { 50% { opacity: 0.55; } }
 #joystick.run { border-color: rgba(255, 140, 60, 0.8); box-shadow: 0 0 18px rgba(255, 120, 40, 0.5); }
 .btn:disabled { opacity: 0.45; cursor: default; }
+.slot { position: relative; }
+.slot .badge { position: absolute; right: 4px; bottom: 2px; font: bold 16px Georgia, serif; color: #f3d38a; text-shadow: 0 1px 2px #000; }

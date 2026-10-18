@@ -46,8 +46,12 @@ export function minuteHandMesh(len = 0.36, mat) {
   return g;
 }
 
+// Другие главы могут добавить свои виды предметов (например, гири)
+export const ITEM_MESHES = {};
+
 export function itemMesh(id, items) {
   const it = items[id] || {};
+  if (ITEM_MESHES[it.icon]) return ITEM_MESHES[it.icon](it);
   if (it.icon === "lantern") return lanternMesh();
   if (it.icon === "valve") { const v = valveMesh(); v.rotation.x = -Math.PI / 2; const g = new THREE.Group(); v.position.y = 0.015; g.add(v); return g; }
   if (it.icon === "hand") { const h = minuteHandMesh(); h.rotation.x = -Math.PI / 2; const g = new THREE.Group(); h.position.y = 0.005; g.add(h); return g; }
@@ -415,8 +419,13 @@ Object.assign(BUILDERS, {
       }
     };
     const id = def.id;
+    const placeHand = () => {
+      G.take(def.item); G.flag("placed:" + def.item); st.placed = true; minG.visible = true;
+      sfx.metal(G.worldPos(face)); G.say("handPlaced", null, 3000);
+    };
     G.onTap(hourProxy, () => {
       if (solved()) return false;
+      if (!st.placed && G.has(def.item)) { placeHand(); return true; }
       st.hour = (st.hour % 12) + 1; tH = closest(tH, angH());
       sfx.click(G.worldPos(face), 0.8); check(); return true;
     }, { owner: id });
@@ -428,10 +437,8 @@ Object.assign(BUILDERS, {
     G.onTap(g, () => {
       if (solved()) { G.say("clockDone"); return true; }
       if (!st.placed) {
-        if (G.has(def.item)) {
-          G.take(def.item); G.flag("placed:" + def.item); st.placed = true; minG.visible = true;
-          sfx.metal(G.worldPos(face)); G.say("handPlaced", null, 3000);
-        } else G.say("clockNoHand", null, 3000);
+        if (G.has(def.item)) placeHand();
+        else G.say("clockNoHand", null, 3000);
         return true;
       }
       G.say("clockHint", null, 3000);
@@ -461,7 +468,8 @@ Object.assign(BUILDERS, {
     const owlCfg = G.level.owl || {};
     if (owlCfg.dropItem) {
       const key = itemMesh(owlCfg.dropItem, G.items);
-      key.position.set(0.32, 0.01, 0.35);
+      key.scale.setScalar(1.5);
+      key.position.set(0.25, 0.01, -0.55);   // падает на сторону, откуда подходит Роберт
       g.add(key);
       key.visible = G.is("owl_landed");
       pickable(G, key, owlCfg.dropItem);
