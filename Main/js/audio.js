@@ -299,6 +299,117 @@ export const sfx = {
   },
 };
 
+// ---------------------------------------------------------------- звуки главы 2
+Object.assign(sfx, {
+  lever(pos) {
+    if (!ctx) return;
+    const d = out(pos, 0.5), t = ctx.currentTime;
+    burst({ t, type: "bandpass", freq: 700, q: 2, d: 0.08, gain: 0.7, dest: d });
+    tone({ t, freq: 140, to: 80, d: 0.15, gain: 0.35, dest: d });
+    burst({ t: t + 0.09, type: "bandpass", freq: 2200, q: 4, d: 0.03, gain: 0.4, dest: d });
+  },
+
+  meow(pos) {
+    if (!ctx) return;
+    const d = out(pos, 0.3), t = ctx.currentTime;
+    const o = ctx.createOscillator(), g = ctx.createGain(), f1 = filt("bandpass", 1100, 3), f2 = filt("bandpass", 2600, 4);
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(520, t); o.frequency.linearRampToValueAtTime(780, t + 0.18); o.frequency.linearRampToValueAtTime(560, t + 0.55);
+    f1.frequency.setValueAtTime(800, t); f1.frequency.linearRampToValueAtTime(1500, t + 0.2); f1.frequency.linearRampToValueAtTime(900, t + 0.55);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.06);
+    g.gain.setValueAtTime(0.22, t + 0.4); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    const mix = ctx.createGain(); mix.gain.value = 1;
+    o.connect(f1); o.connect(f2); f1.connect(g); f2.connect(g); g.connect(d);
+    o.start(t); o.stop(t + 0.65);
+  },
+
+  purr(pos, sec = 2) {
+    if (!ctx) return;
+    const d = out(pos, 0.1), t = ctx.currentTime;
+    const s = noiseSrc(0.4), lp = filt("lowpass", 300), g = ctx.createGain();
+    const lfo = ctx.createOscillator(), lg = ctx.createGain();
+    lfo.frequency.value = 24; lg.gain.value = 0.12; lfo.connect(lg); lg.connect(g.gain);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.14, t + 0.3); g.gain.setValueAtTime(0.14, t + sec - 0.3); g.gain.linearRampToValueAtTime(0.0001, t + sec);
+    s.connect(lp); lp.connect(g); g.connect(d); s.start(t); lfo.start(t); s.stop(t + sec); lfo.stop(t + sec);
+  },
+
+  drain(pos, sec = 3.5) {
+    if (!ctx) return;
+    const d = out(pos, 0.7), t = ctx.currentTime;
+    const s = noiseSrc(0.5), lp = filt("lowpass", 500), g = ctx.createGain();
+    env(g, t, 0.3, 0.5, sec);
+    s.connect(lp); lp.connect(g); g.connect(d); s.start(t); s.stop(t + sec + 0.4);
+    for (let i = 0; i < sec * 9; i++) {
+      const tt = t + i / 9 + Math.random() * 0.1;
+      tone({ t: tt, freq: 200 + Math.random() * 400, to: 600 + Math.random() * 500, d: 0.06, gain: 0.08, dest: d });
+    }
+  },
+
+  splash(pos) {
+    if (!ctx) return;
+    const d = out(pos, 0.5), t = ctx.currentTime;
+    burst({ t, type: "lowpass", freq: 1500, d: 0.3, gain: 0.5, dest: d });
+    for (let i = 0; i < 4; i++) tone({ t: t + 0.05 + i * 0.06, freq: 500 + Math.random() * 600, to: 1200, d: 0.05, gain: 0.06, dest: d });
+  },
+
+  bong(pos, times = 3) {
+    if (!ctx) return;
+    const d = out(pos, 1.0), t = ctx.currentTime;
+    for (let i = 0; i < times; i++) {
+      const tt = t + i * 1.1;
+      for (const [f, gn] of [[196, 0.35], [392, 0.15], [523, 0.08], [784, 0.05]]) tone({ t: tt, freq: f, d: 1.8, gain: gn, dest: d });
+      burst({ t: tt, type: "bandpass", freq: 1200, q: 2, d: 0.05, gain: 0.3, dest: d });
+    }
+  },
+
+  owlScreech(pos) {
+    if (!ctx) return;
+    const d = out(pos, 0.8), t = ctx.currentTime;
+    const o = ctx.createOscillator(), g = ctx.createGain(), bp = filt("bandpass", 1800, 1.5);
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(900, t); o.frequency.linearRampToValueAtTime(1300, t + 0.15); o.frequency.linearRampToValueAtTime(700, t + 0.6);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.35, t + 0.04); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.65);
+    o.connect(bp); bp.connect(g); g.connect(d); o.start(t); o.stop(t + 0.7);
+    burst({ t, type: "highpass", freq: 3000, d: 0.5, gain: 0.15, dest: d });
+  },
+
+  flap(pos) {
+    if (!ctx) return;
+    const d = out(pos, 0.3), t = ctx.currentTime;
+    burst({ t, type: "bandpass", freq: 600, q: 0.8, a: 0.02, d: 0.12, gain: 0.35, dest: d });
+    burst({ t: t + 0.02, type: "bandpass", freq: 2500, q: 2, d: 0.03, gain: 0.15, dest: d });
+  },
+
+  wardrobe(pos) {
+    if (!ctx) return;
+    const d = out(pos, 0.4), t = ctx.currentTime;
+    creakGrain(t, d, 0.45, 0.6, 1100);
+    burst({ t: t + 0.45, type: "lowpass", freq: 600, d: 0.08, gain: 0.5, dest: d });
+  },
+});
+
+// Постоянный звук, который можно двигать (жужжание механизма совы)
+export function movingLoop() {
+  if (!ctx) return null;
+  const p = ctx.createPanner();
+  p.panningModel = "HRTF"; p.distanceModel = "inverse"; p.refDistance = 1.5; p.rolloffFactor = 1.6;
+  const g = ctx.createGain(); g.gain.value = 0;
+  const o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.value = 62;
+  const o2 = ctx.createOscillator(); o2.type = "square"; o2.frequency.value = 124.5;
+  const lp = filt("lowpass", 420, 2);
+  const trem = ctx.createOscillator(), tg = ctx.createGain(); trem.frequency.value = 9; tg.gain.value = 0.3;
+  const og = ctx.createGain(); og.gain.value = 0.5;
+  trem.connect(tg); tg.connect(og.gain);
+  o.connect(lp); o2.connect(lp); lp.connect(og); og.connect(g); g.connect(p); p.connect(dry);
+  const s = ctx.createGain(); s.gain.value = 0.4; p.connect(s); s.connect(roomVerb);
+  o.start(); o2.start(); trem.start();
+  return {
+    setPos(v) { setPos(p, v); },
+    setGain(v) { g.gain.setTargetAtTime(v, ctx.currentTime, 0.2); },
+    setPitch(k) { o.frequency.setTargetAtTime(62 * k, ctx.currentTime, 0.3); o2.frequency.setTargetAtTime(124.5 * k, ctx.currentTime, 0.3); },
+  };
+}
+
 // «Скрип»: серия маленьких щелчков с меняющейся частотой (эффект трения)
 function creakGrain(t, dest, dur, gain = 1, center = 700) {
   const n = Math.floor(dur * 55);

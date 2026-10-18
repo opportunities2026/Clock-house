@@ -2,18 +2,20 @@
 // Здесь: 3D-сцена, Роберт (игрок), осмотр предметов, сохранения и меню.
 import * as THREE from "three";
 import { RoomEnvironment } from "../lib/addons/RoomEnvironment.js";
-import { level } from "../levels/level1.js";
+import { LEVELS, ORDER } from "../levels/index.js";
 import { buildWorld, CELL } from "./world.js";
 import { BUILDERS } from "./props.js";
+import { lanternMesh } from "./props2.js";
+import { Owl } from "./owl.js";
 import { buildDoor } from "./doors.js";
 import { Controls } from "./controls.js";
 import * as T from "./textures.js";
 import * as UI from "./ui.js";
 import { t, tr, setLang, getLang } from "./i18n.js";
 import { sfx, unlockAudio, setVolume, updateListener, tickAudio, suspend } from "./audio.js";
-import { loadGame, saveGame, clearGame, loadSettings, saveSettings } from "./save.js";
+import { loadGame, saveGame, clearGame, loadSettings, saveSettings, loadProgress, unlockChapter } from "./save.js";
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 const EYE = 1.5;            // рост Роберта (высота глаз), метры
 const RADIUS = 0.28;        // «толщина» Роберта для столкновений
 const WALK = 1.9, RUN = 3.3; // скорость, м/с
@@ -21,6 +23,16 @@ const REACH = 2.8;          // как далеко можно дотянутьс
 
 const settings = loadSettings();
 setLang(settings.lang);
+
+// ---------------------------------------------------------------- какая глава
+// Ссылка вида #play-chapter2 запускает главу заново, иначе продолжаем сохранение.
+const bootSave = loadGame();
+const hashPlay = location.hash.startsWith("#play") ? (location.hash.split("-")[1] || "chapter1") : null;
+const level = LEVELS[hashPlay || bootSave?.chapter || "chapter1"] || LEVELS.chapter1;
+// Старые сохранения первой главы: если она пройдена, открываем вторую
+if (bootSave && !bootSave.chapter && bootSave.flags?.includes("chapter_end")) unlockChapter("chapter2");
+const savedEnded = !hashPlay && bootSave?.flags?.includes("chapter_end");
+const continueNext = savedEnded && level.next ? level.next : null;
 
 // ---------------------------------------------------------------- рендер
 const canvas = document.getElementById("view");
@@ -79,10 +91,14 @@ let clock = 0;
 let inspect = null;      // текущий осматриваемый предмет
 let camAnim = null;      // анимация камеры при входе/выходе из осмотра
 let uiBusy = false;      // открыта записка или меню — 3D не реагирует
+let owl = null;          // Страж (только во второй главе)
+const flagListeners = {};
+const afterBuildHooks = [];
+let heldLantern = null;
 
 function persist() {
   saveGame({
-    v: 1,
+    v: 1, chapter: level.id,
     flags: [...state.flags], inventory: state.inventory, notes: state.notes,
     player: { x: player.x, z: player.z, yaw: player.yaw },
   });
@@ -96,12 +112,21 @@ const G = {
     if (state.flags.has(f)) return;
     state.flags.add(f);
     persist();
+    (flagListeners[f] || []).forEach((fn) => fn());
+  },
+  onFlag(f, fn) { (flagListeners[f] ||= []).push(fn); },
+  afterBuild(fn) { afterBuildHooks.push(fn); },
+  // Место, где можно спрятаться (шкаф). anim.open/close — анимация дверец
+  addHide(id, root, view, anim) {
+    inspectables[id] = { id, root, view, hide: true, anim, canEnter: () => true };
+    root.userData.inspectId = id;
   },
   has: (item) => state.inventory.includes(item),
   give(item) {
     if (!state.inventory.includes(item)) state.inventory.push(item);
     G.flag("got:" + item);
     sfx.pickup();
+    if (level.items[item]?.icon === "lantern") takeLantern();
     UI.toast(t("got", { item: tr(level.items[item]?.name) }));
     renderInv();
     UI.flashSlot(state.inventory.indexOf(item));
@@ -172,9 +197,55 @@ const G = {
   },
 };
 
-function stairsPos() {
-  for (let z = 0; z < world.H; z++) for (let x = 0; x < world.W; x++) if (world.at(x, z) === "e") return [(x + 0.5) * CELL, (z + 0.5) * CELL];
-  return [0, 0];
+function cellPos(ch) {
+  for (let z = 0; z < world.H; z++) for (let x = 0; x < world.W; x++) if (world.at(x, z) === ch) return [(x + 0.5) * CELL, (z + 0.5) * CELL];
+  return null;
+}
+function stairsPos() { return cellPos("e") || [0, 0]; }
+
+// ---------------------------------------------------------------- фонарь
+function takeLantern() {
+  handLight.intensity = 4.5; handLight.distance = 10; handLight.color.set("#ffb868");
+  if (!heldLantern) {
+    heldLantern = lanternMesh();
+    heldLantern.scale.setScalar(0.9);
+    heldLantern.position.set(0.3, -0.42, -0.55);
+    heldLantern.traverse((o) => { o.userData.noRay = true; });
+    camera.add(heldLantern);
+  }
+}
+
+// ---------------------------------------------------------------- Страж: погоня и «поймал»
+let chased = false, chaseBreath = 0;
+function onSpotted() {
+  chased = true; chaseBreath = 0;
+  document.body.classList.add("chased");
+  G.say("owlSpotted", null, 2600);
+  sfx.heartbeat(4, 0.45);
+}
+function onLost() {
+  chased = false;
+  document.body.classList.remove("chased");
+  if (inspect?.hide) setTimeout(() => sfx.breath(false, 2), 400);
+}
+async function onCaught() {
+  chased = false;
+  document.body.classList.remove("chased");
+  uiBusy = true; controls.reset();
+  sfx.owlScreech(camera.position.clone());
+  await UI.fade(true, 700);
+  const cp = [...(level.checkpoints || [])].reverse().find((c) => !c.flag || state.flags.has(c.flag)) || level.start;
+  player.x = cp.x * CELL; player.z = cp.z * CELL;
+  player.yaw = THREE.MathUtils.degToRad(cp.angle || 0); player.pitch = 0;
+  inspect = null; camAnim = null; UI.setInspectUI(false); document.body.classList.remove("hiding");
+  controls.walkEnabled = true;
+  playerCamera(camera);
+  owl.reset();
+  await new Promise((r) => setTimeout(r, 600));
+  await UI.fade(false, 700);
+  uiBusy = false;
+  G.say("caught", null, 4000);
+  persist();
 }
 
 // ---------------------------------------------------------------- сборка уровня
@@ -188,9 +259,11 @@ function buildLevel() {
     if (!b) { console.warn("Неизвестный предмет:", def.type); continue; }
     const res = b(def, G) || {};
     const g = res.group;
-    g.position.set(def.x * CELL, def.y || 0, def.z * CELL);
-    if (def.type === "painting" || def.type === "chalkboard") g.position.y = 0;
-    g.rotation.y = THREE.MathUtils.degToRad(def.rot || 0);
+    if (!res.placed) {
+      g.position.set(def.x * CELL, def.y || 0, def.z * CELL);
+      if (def.type === "painting" || def.type === "chalkboard") g.position.y = 0;
+      g.rotation.y = THREE.MathUtils.degToRad(def.rot || 0);
+    }
     scene.add(g);
     if (!res.noCollide && res.w) {
       // прямоугольник мебели с учётом поворота
@@ -203,11 +276,18 @@ function buildLevel() {
   }
   for (const d of level.doors) scene.add(buildDoor(d, G).g);
 
-  // свет у лестницы в подвал — холодный, таинственный
-  const [sx, sz] = stairsPos();
-  const glow = new THREE.PointLight("#6a8aff", 4, 6, 2);
-  glow.position.set(sx, -1.6, sz);
-  scene.add(glow);
+  // свет у лестницы: вниз в подвал — холодный, наверх в башню — тёплый
+  const down = cellPos("e"), up = cellPos("u");
+  if (down) { const glow = new THREE.PointLight("#6a8aff", 4, 6, 2); glow.position.set(down[0], -1.6, down[1]); scene.add(glow); }
+  if (up) { const glow = new THREE.PointLight("#ffc070", 6, 7, 2); glow.position.set(up[0], 4.2, up[1]); scene.add(glow); }
+
+  if (level.owl) {
+    owl = new Owl({
+      cfg: level.owl, world, G, scene,
+      getPlayer: () => ({ x: player.x, z: player.z, hidden: !!inspect?.hide }),
+      onSpotted, onLost, onCaught,
+    });
+  }
 
   scene.updateMatrixWorld(true);
   for (const p of pendingPos) { p.obj.updateWorldMatrix(true, false); p.v.applyMatrix4(p.obj.matrixWorld); }
@@ -215,6 +295,7 @@ function buildLevel() {
   // тени-пятна и пламя не должны мешать нажатиям
   scene.traverse((o) => { if (o.isMesh && o.material && o.material.depthWrite === false) o.userData.noRay = true; });
   building = false;
+  afterBuildHooks.forEach((fn) => fn());
 }
 
 // ---------------------------------------------------------------- игрок и столкновения
@@ -273,13 +354,13 @@ function updatePlayer(dt) {
     player.stepPhase += (moved / 0.68) * Math.PI;
     if (Math.floor(player.stepPhase / Math.PI) !== before) {
       const cell = world.at(Math.floor(player.x / CELL), Math.floor(player.z / CELL));
-      sfx.step(cell === "e" ? "stone" : "wood", Math.min(1.3, moved / dt / WALK));
+      sfx.step(cell === "e" || (level.stoneFloors || "").includes(cell) ? "stone" : "wood", Math.min(1.3, moved / dt / WALK));
     }
   }
   player.bob = Math.sin(player.stepPhase) * 0.035 * player.moving;
 
   // конец главы — Роберт ступил на лестницу
-  if (!ended && world.at(Math.floor(player.x / CELL), Math.floor(player.z / CELL)) === "e") endChapter();
+  if (!ended && (level.endCells || "e").includes(world.at(Math.floor(player.x / CELL), Math.floor(player.z / CELL)))) endChapter();
 }
 
 function playerCamera(target) {
@@ -313,13 +394,26 @@ function enterInspect(id) {
   controls.reset();
   controls.walkEnabled = false;
   inspectPose(ins, tmpObj);
-  startCamAnim(tmpObj.position.clone(), tmpObj.quaternion.clone(), 0.65, () => ins.onEnter?.());
+  if (ins.hide) {
+    ins.anim?.open();
+    document.body.classList.add("hiding");
+    if (heldLantern) heldLantern.visible = false;
+    startCamAnim(tmpObj.position.clone(), tmpObj.quaternion.clone(), 0.7, () => { ins.anim?.close(); sfx.breath(false, 2); });
+  } else {
+    startCamAnim(tmpObj.position.clone(), tmpObj.quaternion.clone(), 0.65, () => ins.onEnter?.());
+  }
   UI.setInspectUI(true);
   return true;
 }
 
 function leaveInspect() {
   if (!inspect) return;
+  if (inspect.hide) {
+    const a = inspect.anim;
+    a?.open(); setTimeout(() => a?.close(), 900);
+    document.body.classList.remove("hiding");
+    if (heldLantern) heldLantern.visible = true;
+  }
   inspect = null;
   controls.walkEnabled = true;
   playerCamera(tmpObj);
@@ -428,14 +522,20 @@ async function endChapter() {
   ended = true;
   G.flag("chapter_end");
   controls.reset();
-  const [sx, sz] = stairsPos();
-  sfx.owl(new THREE.Vector3(sx, -4, sz));
-  sfx.heartbeat(7, 0.5);
-  setTimeout(() => sfx.breath(true, 4), 600);
+  if (level.id === "chapter1") {
+    const [sx, sz] = stairsPos();
+    sfx.owl(new THREE.Vector3(sx, -4, sz));
+    sfx.heartbeat(7, 0.5);
+    setTimeout(() => sfx.breath(true, 4), 600);
+  } else {
+    sfx.breath(false, 2);
+  }
+  if (level.next) unlockChapter(level.next);
   await new Promise((r) => setTimeout(r, 2500));
   await UI.fade(true, 1500);
   document.getElementById("end-title").textContent = tr(level.ending.title);
   document.getElementById("end-text").textContent = tr(level.ending.text);
+  document.getElementById("btn-end-next").style.display = level.next ? "" : "none";
   UI.showScreen("end");
 }
 
@@ -456,6 +556,11 @@ function frame(now) {
     if (k >= 1) { tweens.splice(i, 1); tw.done?.(); }
   }
   for (const u of updaters) u(dt, clock);
+  if (owl && !paused && !ended) owl.update(uiBusy ? 0 : dt, clock);
+  if (chased) {
+    chaseBreath -= dt;
+    if (chaseBreath <= 0) { chaseBreath = 2.6; sfx.breath(true, 2); }
+  }
   for (const f of G.flames) { const s = 0.85 + Math.random() * 0.3; f.scale.set(s, 2 * s, s); }
   for (const l of lights) if (l.userData.flicker) l.intensity = l.userData.base * (1 - l.userData.flicker + Math.random() * l.userData.flicker * 2);
   updateCamera(dt);
@@ -487,8 +592,34 @@ let settingsBack = "menu";
 function refreshMenu() {
   const save = loadGame();
   $("btn-continue").style.display = started || (save && save.flags?.length) ? "" : "none";
-  $("btn-continue").textContent = t(started ? "resume" : "continue");
+  $("btn-continue").textContent = started ? t("resume") : continueNext ? tr(LEVELS[continueNext].title) : t("continue");
   $("version").textContent = `${t("version")} ${VERSION}`;
+  $("menu-subtitle").textContent = tr(level.title);
+  $("btn-chapters").style.display = loadProgress().unlocked.length > 1 ? "" : "none";
+}
+
+function playChapter(id) {
+  location.hash = "play-" + id;
+  location.reload();
+}
+
+function showChapters() {
+  const list = $("chapter-list");
+  list.innerHTML = "";
+  const unlocked = loadProgress().unlocked;
+  for (const id of ORDER) {
+    const b = document.createElement("button");
+    b.className = "btn" + (id === level.id ? " primary" : "");
+    b.textContent = tr(LEVELS[id].title);
+    b.disabled = !unlocked.includes(id);
+    if (b.disabled) b.textContent += " 🔒";
+    b.addEventListener("click", async () => {
+      if (loadGame()?.flags?.length && !(await UI.confirmDialog(t("chapterConfirm")))) return;
+      playChapter(id);
+    });
+    list.appendChild(b);
+  }
+  UI.showScreen("chapters");
 }
 
 function setLanguage(l) {
@@ -533,6 +664,7 @@ async function startGame(fresh) {
   }
   buildLevel();
   const s = level.start;
+  if (state.flags.has("got:lantern")) takeLantern();
   if (save?.player) { player.x = save.player.x; player.z = save.player.z; player.yaw = save.player.yaw; }
   else { player.x = s.x * CELL; player.z = s.z * CELL; player.yaw = THREE.MathUtils.degToRad(s.angle || 0); }
   playerCamera(camera);
@@ -545,7 +677,8 @@ async function startGame(fresh) {
   paused = false;
   if (!save) {
     G.flag("started");
-    await G.showNote("letter");
+    if (level.introNote) await G.showNote(level.introNote);
+    else UI.toast(tr(level.title), 3500);
     UI.showScreen("howto");
     paused = true;
   } else {
@@ -569,12 +702,15 @@ function resume() {
 $("btn-new").addEventListener("click", async () => {
   if (started || loadGame()?.flags?.length) {
     if (!(await UI.confirmDialog(t("resetConfirm")))) return;
-    clearGame();
-    if (started) { location.hash = "play"; location.reload(); return; }
   }
+  clearGame();
+  if (started || level.id !== "chapter1") { playChapter("chapter1"); return; }
   startGame(true);
 });
-$("btn-continue").addEventListener("click", () => startGame(false));
+$("btn-continue").addEventListener("click", () => { if (!started && continueNext) playChapter(continueNext); else startGame(false); });
+$("btn-chapters").addEventListener("click", showChapters);
+$("btn-chapters-back").addEventListener("click", () => UI.showScreen("menu"));
+$("btn-end-next").addEventListener("click", () => { if (level.next) playChapter(level.next); });
 $("btn-settings").addEventListener("click", () => openSettings("menu"));
 $("btn-resume").addEventListener("click", resume);
 $("btn-pause-settings").addEventListener("click", () => openSettings("pause"));
@@ -585,8 +721,8 @@ $("btn-end-menu").addEventListener("click", async () => { location.hash = ""; lo
 $("btn-reset").addEventListener("click", async () => {
   if (!(await UI.confirmDialog(t("resetConfirm")))) return;
   clearGame();
-  location.hash = started ? "play" : "";
-  location.reload();
+  if (started) playChapter(level.id);
+  else location.reload();
 });
 document.querySelectorAll("[data-lang]").forEach((b) => b.addEventListener("click", () => setLanguage(b.dataset.lang)));
 document.querySelectorAll("[data-quality]").forEach((b) => b.addEventListener("click", () => {
@@ -627,12 +763,12 @@ document.addEventListener("gesturestart", (e) => e.preventDefault());
 
 setLanguage(settings.lang);
 refreshMenu();
-if (location.hash === "#play") {
-  location.hash = "";
+if (hashPlay) {
+  history.replaceState(null, "", location.pathname + location.search);
   startGame(true);
 } else {
   UI.showScreen("menu");
 }
 
 // Для отладки и для Кирилла: в консоли браузера можно писать game.state и т.п.
-window.game = { state, player, G, scene, camera, enterInspect, leaveInspect, handleTap, inspectables, pick, get inspect() { return inspect; }, get started() { return started; }, get debug() { return { paused, uiBusy, camAnim: !!camAnim, ended }; } };
+window.game = { state, player, G, scene, camera, level, get owl() { return owl; }, enterInspect, leaveInspect, handleTap, inspectables, pick, get inspect() { return inspect; }, get started() { return started; }, get debug() { return { paused, uiBusy, camAnim: !!camAnim, ended }; } };

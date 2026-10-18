@@ -199,3 +199,23 @@ input[type=range] { width: 200px; accent-color: var(--brass); height: 30px; }
   .btn { padding: 11px 18px; font-size: 18px; }
   .logo-gear { width: 56px; height: 56px; }
 }
+
+/* ---------- глава 2: шкаф, погоня ---------- */
+.lbl-leave { display: none; }
+body.hiding .lbl-back { display: none; }
+body.hiding .lbl-leave { display: inline; }
+#slats {
+  position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .5s;
+  background:
+    repeating-linear-gradient(180deg, rgba(8,5,2,0.96) 0 26px, rgba(8,5,2,0.35) 26px 34px, rgba(8,5,2,0.96) 34px 40px),
+    radial-gradient(ellipse at center, rgba(0,0,0,0) 30%, rgba(0,0,0,0.8) 100%);
+}
+body.hiding #slats { opacity: 1; }
+body.hiding #inventory, body.hiding .hud-right { opacity: 0.4; }
+body.chased #vignette {
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(120,20,0,0.55) 100%);
+  animation: danger 0.9s ease-in-out infinite;
+}
+@keyframes danger { 50% { opacity: 0.55; } }
+#joystick.run { border-color: rgba(255, 140, 60, 0.8); box-shadow: 0 0 18px rgba(255, 120, 40, 0.5); }
+.btn:disabled { opacity: 0.45; cursor: default; }

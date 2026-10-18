@@ -280,6 +280,40 @@ function bricks(ctx, r, y0 = 0) {
   noise(ctx, WALL_W, WALL_H, 0.08, r, 2);
 }
 
+// Кладка из крупных камней (подвал)
+function stoneBlocks(ctx, r, base = [0.15, 0.135, 0.12], damp = 1) {
+  ctx.fillStyle = "#1e1a16"; ctx.fillRect(0, 0, WALL_W, WALL_H);
+  let y = 0;
+  while (y < WALL_H) {
+    const h = 55 + r() * 80;
+    let x = -r() * 120;
+    while (x < WALL_W) {
+      const w = 80 + r() * 170;
+      const v = 0.7 + r() * 0.6;
+      ctx.fillStyle = new THREE.Color(base[0] * v, base[1] * v, base[2] * v).getStyle();
+      ctx.beginPath();
+      const j = () => (r() - 0.5) * 10;
+      ctx.moveTo(x + 3 + j(), y + 3 + j()); ctx.lineTo(x + w / 2 + j(), y + 2 + j()); ctx.lineTo(x + w - 3 + j(), y + 3 + j());
+      ctx.lineTo(x + w - 2 + j(), y + h / 2 + j()); ctx.lineTo(x + w - 3 + j(), y + h - 3 + j());
+      ctx.lineTo(x + w / 2 + j(), y + h - 2 + j()); ctx.lineTo(x + 3 + j(), y + h - 3 + j()); ctx.lineTo(x + 2 + j(), y + h / 2 + j());
+      ctx.closePath(); ctx.fill();
+      // скол и блик на камне
+      ctx.fillStyle = `rgba(255,240,220,${0.03 + r() * 0.05})`; ctx.fillRect(x + 6, y + 6, w - 12, 4);
+      for (let k = 0; k < 60; k++) { const lv = r() < 0.5 ? 0 : 255; ctx.fillStyle = `rgba(${lv},${lv},${lv},${r() * 0.08})`; ctx.beginPath(); ctx.arc(x + r() * w, y + r() * h, 1 + r() * 7, 0, 7); ctx.fill(); }
+      x += w;
+    }
+    y += h;
+  }
+  // сырость и мох внизу
+  for (let i = 0; i < 18 * damp; i++) {
+    const x = r() * WALL_W, yy = WALL_H - r() * 380;
+    const g = ctx.createRadialGradient(x, yy, 0, x, yy, 40 + r() * 110);
+    g.addColorStop(0, r() < 0.5 ? "rgba(40,55,30,0.35)" : "rgba(10,10,8,0.4)"); g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, WALL_W, WALL_H);
+  }
+  noise(ctx, WALL_W, WALL_H, 0.1, r, 2);
+}
+
 function plasterTex(base, seed, size = 512) {
   const c = canvas(size, size), ctx = c.getContext("2d"), r = rng(seed);
   ctx.fillStyle = base; ctx.fillRect(0, 0, size, size);
@@ -299,6 +333,11 @@ const WALL_STYLES = {
   workshop: (ctx, r) => { bricks(ctx, r); ctx.fillStyle = "#3a2a1c"; ctx.fillRect(0, WALL_H - 40, WALL_W, 40); aging(ctx, r, 1.4); },
   doorway:  (ctx, r) => { grain(ctx, 0, 0, WALL_W, WALL_H, "#4a2e1a", r, true, 0.7); ctx.strokeStyle = "rgba(0,0,0,0.5)"; ctx.lineWidth = 6; ctx.strokeRect(50, 60, WALL_W - 100, WALL_H - 400); ctx.strokeRect(50, WALL_H - 300, WALL_W - 100, 240); aging(ctx, r); },
   stairs:   (ctx, r) => { bricks(ctx, r); ctx.fillStyle = "rgba(10,12,20,0.55)"; ctx.fillRect(0, 0, WALL_W, WALL_H); aging(ctx, r, 2.5); },
+  // глава 2: подвал
+  cellar:   (ctx, r) => { stoneBlocks(ctx, r); aging(ctx, r, 2); },
+  storage:  (ctx, r) => { bricks(ctx, r); ctx.fillStyle = "rgba(20,14,8,0.35)"; ctx.fillRect(0, 0, WALL_W, WALL_H); ctx.fillStyle = "#2a1c10"; ctx.fillRect(0, WALL_H - 40, WALL_W, 40); aging(ctx, r, 2); },
+  nest:     (ctx, r) => { stoneBlocks(ctx, r, [0.17, 0.14, 0.11], 0.4); ctx.fillStyle = "rgba(200,150,60,0.06)"; ctx.fillRect(0, 0, WALL_W, WALL_H); aging(ctx, r, 1.5); },
+  stairsUp: (ctx, r) => { stoneBlocks(ctx, r, [0.2, 0.18, 0.16], 0.3); aging(ctx, r, 1); },
 };
 
 const FLOOR_STYLES = {
@@ -308,7 +347,19 @@ const FLOOR_STYLES = {
   workshop: () => [planks("#6a5a48", 14, 1.4), 2],
   doorway: () => [planks("#4a2c18", 15), 2],
   stairs: () => [stoneFloor(16), 1.5],
+  cellar: () => [darken(stoneFloor(17), 0.6), 1.5],
+  storage: () => [planks("#3a2a1c", 18, 1.6), 2],
+  nest: () => [planks("#4a3420", 19, 0.8), 2],
+  stairsUp: () => [stoneFloor(20), 1.5],
 };
+
+function darken(c, k) {
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = `rgba(8,7,6,${1 - k})`; ctx.fillRect(0, 0, c.width, c.height);
+  return c;
+}
+
+const STONE_THEMES = ["stairs", "cellar", "stairsUp"];
 
 const cache = new Map();
 function cached(key, fn) {
@@ -324,15 +375,16 @@ export function roomMaterials(theme) {
     (WALL_STYLES[theme] || WALL_STYLES.hall)(wc.getContext("2d"), r);
     const wall = new THREE.MeshStandardMaterial({
       map: tex(wc), bumpMap: tex(bumpFrom(wc), { color: false }), bumpScale: 1.5,
-      roughness: theme === "workshop" ? 0.95 : 0.85, metalness: 0,
+      roughness: ["workshop", "storage"].includes(theme) ? 0.95 : 0.85, metalness: 0,
     });
     const [fc, rep] = (FLOOR_STYLES[theme] || FLOOR_STYLES.hall)();
     const floor = new THREE.MeshStandardMaterial({
       map: tex(fc), bumpMap: tex(bumpFrom(fc, 2), { color: false }), bumpScale: 2,
-      roughness: theme === "stairs" ? 0.9 : 0.55, metalness: 0,
+      roughness: theme === "cellar" ? 0.6 : STONE_THEMES.includes(theme) ? 0.9 : 0.55, metalness: 0,
     });
     floor.userData.metersPerRepeat = 3 / (rep / 2);
-    const cc = plasterTex(theme === "workshop" ? "#8a7c6a" : "#c9bfa9", 99 + theme.length);
+    const ceilColor = { workshop: "#8a7c6a", cellar: "#2e2a26", storage: "#3a332c", nest: "#3a3028", stairs: "#2e2a26", stairsUp: "#3a352e" }[theme] || "#c9bfa9";
+    const cc = plasterTex(ceilColor, 99 + theme.length);
     const ceil = new THREE.MeshStandardMaterial({ map: tex(cc), roughness: 1 });
     return { wall, floor, ceil };
   });
@@ -673,6 +725,58 @@ export function paperTexture(lines = 9) {
   }
   noise(ctx, W, H, 0.08, r);
   return tex(c);
+}
+
+// Паутина в углу
+export function cobwebTexture() {
+  return cached("cobweb", () => {
+    const S = 256, c = canvas(S, S), ctx = c.getContext("2d"), r = rng(66);
+    ctx.strokeStyle = "rgba(230,230,220,0.55)"; ctx.lineWidth = 1.2;
+    const spokes = 8;
+    const ang = (k) => (k / (spokes - 1)) * (Math.PI / 2);
+    for (let k = 0; k < spokes; k++) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(ang(k)) * S, Math.sin(ang(k)) * S); ctx.stroke(); }
+    for (let ring = 1; ring < 9; ring++) {
+      ctx.beginPath();
+      for (let k = 0; k < spokes; k++) {
+        const rr = ring * 28 + (r() - 0.5) * 8;
+        const px = Math.cos(ang(k)) * rr, py = Math.sin(ang(k)) * rr;
+        k ? ctx.quadraticCurveTo(Math.cos(ang(k - 0.5)) * rr * 0.9, Math.sin(ang(k - 0.5)) * rr * 0.9, px, py) : ctx.moveTo(px, py);
+      }
+      ctx.stroke();
+    }
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
+// Стрелки, нацарапанные на стене (подсказка к рычагам)
+export function scratchTexture(pattern) {
+  const W = 512, H = 256, c = canvas(W, H), ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = "rgba(225,220,200,0.85)"; ctx.lineWidth = 9; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  const n = pattern.length, step = W / (n + 1);
+  pattern.forEach((p, i) => {
+    const x = step * (i + 1), up = p === "up";
+    ctx.beginPath(); ctx.moveTo(x, up ? 200 : 56); ctx.lineTo(x, up ? 56 : 200);
+    ctx.moveTo(x - 34, up ? 92 : 164); ctx.lineTo(x, up ? 56 : 200); ctx.lineTo(x + 34, up ? 92 : 164);
+    ctx.stroke();
+  });
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+export function waterTexture() {
+  return cached("water", () => {
+    const S = 256, c = canvas(S, S), ctx = c.getContext("2d"), r = rng(5);
+    ctx.fillStyle = "#808080"; ctx.fillRect(0, 0, S, S);
+    for (let i = 0; i < 160; i++) {
+      const v = r() < 0.5 ? 60 : 200;
+      ctx.fillStyle = `rgba(${v},${v},${v},0.15)`;
+      ctx.beginPath(); ctx.ellipse(r() * S, r() * S, 10 + r() * 30, 4 + r() * 10, r() * 3, 0, 7); ctx.fill();
+    }
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    return t;
+  });
 }
 
 export function windowTexture() {

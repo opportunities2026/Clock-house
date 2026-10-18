@@ -73,6 +73,7 @@ export function buildDoor(def, G) {
   if (lock.type === "key") keyLock(door, lock, lockG, G, brass);
   else if (lock.type === "code") codeLock(door, lock, lockG, G, brass);
   else if (lock.type === "gears") gearLock(door, lock, lockG, G, brass);
+  else if (lock.type === "levers") leverLock(door, lock, lockG, G, brass);
 
   // Нажатие на саму створку
   G.onTap(leaf, () => {
@@ -83,6 +84,7 @@ export function buildDoor(def, G) {
     }
     else if (lock.type === "code") G.say("lockedCode", null, 2500);
     else if (lock.type === "gears") G.say("lockedGears");
+    else if (lock.type === "levers") G.say("lockedLevers", null, 2600);
     return true;
   }, { owner: id });
 
@@ -90,6 +92,7 @@ export function buildDoor(def, G) {
     key: { pos: [0.38, 1.05, 0.6], target: [0.38, 0.95, 0] },
     code: { pos: [0.1, 1.17, 0.55], target: [0.1, 1.12, 0] },
     gears: { pos: [0, 1.3, 1.05], target: [0, 1.3, 0] },
+    levers: { pos: [0.05, 1.22, 0.75], target: [0.05, 1.12, 0] },
   };
   if (!door.isOpen) G.addInspect(id, g, views[lock.type] || views.key, null, () => !door.isOpen);
   return door;
@@ -248,4 +251,37 @@ function gearLock(door, lock, lg, G, brass) {
     if (!spinning) return;
     for (const a of all) a.m.rotation.z += a.dir * (0.9 * rF / a.r) * dt * 2.5;
   });
+}
+
+// Панель с рычагами: каждый рычаг можно поднять или опустить
+function leverLock(door, lock, lg, G, brass) {
+  const pattern = lock.pattern || ["up", "down", "up"];
+  const n = pattern.length, step = 0.1, x0 = 0.05, y = 1.12, z = 0.03;
+  const iron = T.metal("#3a3632", 0.5);
+  rbox(n * step + 0.08, 0.26, 0.03, 0.01, brass, x0, y, z + 0.01, lg);
+  const levers = [];
+  for (let i = 0; i < n; i++) {
+    const x = x0 + (i - (n - 1) / 2) * step;
+    box(0.025, 0.2, 0.01, T.plain("#120c06", 1), x, y, z + 0.03, lg);
+    const pivot = new THREE.Group(); pivot.position.set(x, y, z + 0.035); lg.add(pivot);
+    const arm = cyl(0.009, 0.009, 0.12, iron, 0, 0, 0.06, pivot, 8); arm.rotation.x = Math.PI / 2;
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.02, 12, 8), T.metal("#8a1e14", 0.4));
+    knob.position.z = 0.125; pivot.add(knob);
+    hitProxyBox(pivot, 0.08, 0.24, 0.16).position.z = 0.06;
+    const L = { up: door.isOpen ? pattern[i] === "up" : false, pivot };
+    L.target = L.up ? -0.75 : 0.75;
+    pivot.rotation.x = L.target;
+    levers.push(L);
+    G.onTap(pivot, () => {
+      if (door.isOpen || door.solving) return false;
+      L.up = !L.up; L.target = L.up ? -0.75 : 0.75;
+      sfx.lever(G.worldPos(pivot));
+      if (levers.every((q, k) => (q.up ? "up" : "down") === pattern[k])) {
+        door.solving = true;
+        setTimeout(() => { sfx.unlock(G.worldPos(lg)); door.open(); }, 600);
+      }
+      return true;
+    }, { owner: door.def.id });
+  }
+  G.every((dt) => { for (const L of levers) L.pivot.rotation.x += (L.target - L.pivot.rotation.x) * Math.min(1, dt * 12); });
 }

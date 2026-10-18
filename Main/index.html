@@ -20,6 +20,7 @@
 <body>
   <canvas id="view"></canvas>
   <div id="vignette"></div>
+  <div id="slats"></div>
   <div id="crosshair"></div>
   <div id="joystick"><div id="joystick-knob"></div></div>
 
@@ -38,7 +39,7 @@
     </div>
     <button id="btn-back" class="back-btn">
       <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span data-t="back">Назад</span>
+      <span class="lbl-back" data-t="back">Назад</span><span class="lbl-leave" data-t="leaveWardrobe">Выйти из шкафа</span>
     </button>
     <div id="inventory" class="empty"></div>
     <div id="toast" role="status" aria-live="polite"></div>
@@ -51,14 +52,24 @@
     <div class="menu-card">
       <div class="logo-gear" aria-hidden="true"></div>
       <h1 data-t="title">Дом часовщика</h1>
-      <p class="subtitle" data-t="subtitle">Глава 1 · Три двери</p>
+      <p id="menu-subtitle" class="subtitle">Глава 1 · Три двери</p>
       <div class="menu-buttons">
         <button id="btn-continue" class="btn primary" data-t="continue">Продолжить</button>
         <button id="btn-new" class="btn" data-t="newGame">Новая игра</button>
+        <button id="btn-chapters" class="btn" data-t="chapters">Главы</button>
         <button id="btn-settings" class="btn" data-t="settings">Настройки</button>
       </div>
       <p class="rotate-hint" data-t="rotateDevice"></p>
       <p id="version" class="version"></p>
+    </div>
+  </section>
+
+  <!-- Выбор главы -->
+  <section id="screen-chapters" class="screen menu-bg">
+    <div class="menu-card small">
+      <h2 data-t="chapters">Главы</h2>
+      <div id="chapter-list" class="menu-buttons"></div>
+      <div class="menu-buttons"><button id="btn-chapters-back" class="btn" data-t="back">Назад</button></div>
     </div>
   </section>
 
@@ -76,6 +87,7 @@
       <h2 data-t="controlsTitle">Как играть</h2>
       <div class="howto">
         <div class="howto-row"><span class="howto-icon">👆</span><p data-t="controlsTouch"></p></div>
+        <div class="howto-row"><span class="howto-icon">🏃</span><p data-t="controlsRun"></p></div>
         <div class="howto-row keys"><span class="howto-icon">⌨️</span><p data-t="controlsKeys"></p></div>
       </div>
       <button id="btn-howto-ok" class="btn primary" data-t="beginAdventure">Войти в дом</button>
@@ -133,7 +145,10 @@
       <div class="logo-gear" aria-hidden="true"></div>
       <h1 id="end-title"></h1>
       <p id="end-text" class="story"></p>
-      <button id="btn-end-menu" class="btn primary" data-t="endButton">В главное меню</button>
+      <div class="menu-buttons">
+        <button id="btn-end-next" class="btn primary" data-t="nextChapter">Следующая глава</button>
+        <button id="btn-end-menu" class="btn" data-t="endButton">В главное меню</button>
+      </div>
     </div>
   </section>
 

@@ -80,6 +80,9 @@ export class Controls {
   // Итоговое движение: джойстик + клавиши
   axis() {
     let x = this.move.x, y = this.move.y;
+    // джойстик толкнули до самого края — Роберт бежит
+    const runTouch = Math.hypot(x, y) > 0.92;
+    this.joy.classList.toggle("run", runTouch);
     const k = this.keys;
     if (k.has("KeyW") || k.has("ArrowUp")) y += 1;
     if (k.has("KeyS") || k.has("ArrowDown")) y -= 1;
@@ -87,6 +90,6 @@ export class Controls {
     if (k.has("KeyD") || k.has("ArrowRight")) x += 1;
     const len = Math.hypot(x, y);
     if (len > 1) { x /= len; y /= len; }
-    return { x, y, run: k.has("ShiftLeft") || k.has("ShiftRight") };
+    return { x, y, run: runTouch || k.has("ShiftLeft") || k.has("ShiftRight") };
   }
 }

@@ -21,17 +21,17 @@ export function cyl(rt, rb, h, mat, x = 0, y = 0, z = 0, parent, seg = 20) {
   const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat);
   m.position.set(x, y, z); if (parent) parent.add(m); return m;
 }
-function sphere(r, mat, x = 0, y = 0, z = 0, parent, seg = 16) {
+export function sphere(r, mat, x = 0, y = 0, z = 0, parent, seg = 16) {
   const m = new THREE.Mesh(new THREE.SphereGeometry(r, seg, Math.max(8, seg / 2)), mat);
   m.position.set(x, y, z); if (parent) parent.add(m); return m;
 }
-function plane(w, h, mat, x = 0, y = 0, z = 0, parent) {
+export function plane(w, h, mat, x = 0, y = 0, z = 0, parent) {
   const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
   m.position.set(x, y, z); if (parent) parent.add(m); return m;
 }
 
 const M = {};
-function mats() {
+export function mats() {
   if (M.ready) return M;
   M.dark = T.woodMaterial("#3a2212", { seed: 3 });
   M.mid = T.woodMaterial("#5e3c22", { seed: 4 });
@@ -67,7 +67,7 @@ export function blobShadow(w, d, parent, opacity = 0.55) {
   return m;
 }
 
-function candle(parent, x, y, z, h = 0.14) {
+export function candle(parent, x, y, z, h = 0.14) {
   const m = mats();
   cyl(0.025, 0.035, 0.03, M.brass, x, y + 0.015, z, parent);
   cyl(0.016, 0.016, h, m.candle, x, y + 0.03 + h / 2, z, parent);
@@ -108,14 +108,14 @@ export function gearMesh(r, mat) {
   return m;
 }
 
-export function keyMesh() {
-  const m = mats();
+export function keyMesh(mat) {
+  const m = mats(), km = mat || m.brass;
   const g = new THREE.Group();
-  const bow = new THREE.Mesh(new THREE.TorusGeometry(0.02, 0.006, 8, 20), m.brass);
+  const bow = new THREE.Mesh(new THREE.TorusGeometry(0.02, 0.006, 8, 20), km);
   bow.position.x = -0.05; g.add(bow);
-  const shaft = cyl(0.004, 0.004, 0.09, m.brass, 0.0, 0, 0, g, 8); shaft.rotation.z = Math.PI / 2;
-  box(0.012, 0.018, 0.004, m.brass, 0.035, -0.011, 0, g);
-  box(0.006, 0.012, 0.004, m.brass, 0.02, -0.008, 0, g);
+  const shaft = cyl(0.004, 0.004, 0.09, km, 0.0, 0, 0, g, 8); shaft.rotation.z = Math.PI / 2;
+  box(0.012, 0.018, 0.004, km, 0.035, -0.011, 0, g);
+  box(0.006, 0.012, 0.004, km, 0.02, -0.008, 0, g);
   return g;
 }
 
@@ -139,7 +139,7 @@ export function hitProxy(obj, minRadius = 0.07) {
 
 // Сделать предмет «подбираемым»
 // isOpen — для предметов внутри ящиков и шкатулок: пока закрыто, взять нельзя
-function pickable(G, mesh, itemId, owner, isOpen = () => true) {
+export function pickable(G, mesh, itemId, owner, isOpen = () => true) {
   if (G.has(itemId) || G.is("got:" + itemId)) { mesh.visible = false; return; }
   const proxy = hitProxy(mesh);
   G.every(() => { proxy.visible = isOpen(); });
@@ -594,7 +594,7 @@ export const BUILDERS = {
     const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.22, 0.18, 24, 1, true), new THREE.MeshStandardMaterial({ color: "#2a3a2a", metalness: 0.6, roughness: 0.4, side: THREE.DoubleSide }));
     shade.position.y = y; g.add(shade);
     sphere(0.04, new THREE.MeshBasicMaterial({ color: "#fff0c8" }), 0, y - 0.06, 0, g);
-    G.light("#ffd8a0", 16, 11, [0, y - 0.12, 0], g);
+    G.light("#ffd8a0", def.power || 16, 11, [0, y - 0.12, 0], g);
     return { group: g, noCollide: true };
   },
 

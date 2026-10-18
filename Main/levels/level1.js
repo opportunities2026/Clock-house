@@ -14,6 +14,9 @@
 
 export const level = {
   id: "chapter1",
+  title: { ru: "Глава 1 · Три двери", en: "Chapter 1 · Three Doors" },
+  next: "chapter2",
+  introNote: "letter",
 
   // -------------------------------------------------------------------
   //  КАРТА. Каждый символ — одна клетка 1,5 × 1,5 метра.
