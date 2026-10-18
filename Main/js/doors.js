@@ -309,8 +309,9 @@ function bellLock(door, lock, lg, G, brass) {
       pts.push(new THREE.Vector2(R * (0.35 + 0.65 * Math.pow(t, 1.6)) + (t > 0.9 ? R * 0.12 : 0), -t * R * 2));
     }
     const pivot = new THREE.Group(); pivot.position.set(x, y - 0.03, z + 0.06); lg.add(pivot);
-    const bellMesh = new THREE.Mesh(new THREE.LatheGeometry(pts, 24), brass);
-    bellMesh.material = brass; pivot.add(bellMesh);
+    const bellMat = new THREE.MeshStandardMaterial({ color: "#c8964a", metalness: 0.55, roughness: 0.3, emissive: "#3a2408", emissiveIntensity: 0.4 });
+    const bellMesh = new THREE.Mesh(new THREE.LatheGeometry(pts, 24), bellMat);
+    pivot.add(bellMesh);
     bellMesh.geometry.computeVertexNormals();
     const inner = new THREE.Mesh(new THREE.LatheGeometry(pts, 24), T.plain("#2a1a08", 0.6, { side: THREE.BackSide }));
     inner.scale.setScalar(0.96); pivot.add(inner);
