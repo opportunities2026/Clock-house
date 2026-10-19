@@ -22,13 +22,13 @@ export function toast(text, ms = 2600) {
   toastTimer = setTimeout(() => el.classList.remove("show"), ms);
 }
 
-export function renderInventory(list, defs, onTap) {
+export function renderInventory(list, defs, onTap, selected = null) {
   const el = $("inventory");
   el.innerHTML = "";
   for (const id of list) {
     const def = defs[id] || {};
     const b = document.createElement("button");
-    b.className = "slot";
+    b.className = "slot" + (id === selected ? " selected" : "");
     b.setAttribute("aria-label", tr(def.name));
     b.innerHTML = ICONS[def.icon] || ICONS.note;
     if (def.label) { const s = document.createElement("span"); s.className = "badge"; s.textContent = def.label; b.appendChild(s); }

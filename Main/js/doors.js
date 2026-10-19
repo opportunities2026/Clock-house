@@ -85,7 +85,10 @@ export function buildDoor(def, G) {
       sfx.locked(G.worldPos(g, [0, 1, 0])); G.say("lockedKey");
     }
     else if (lock.type === "code") G.say("lockedCode", null, 2500);
-    else if (lock.type === "gears") G.say("lockedGears");
+    else if (lock.type === "gears") {
+      if (lock.items.some((it) => G.has(it)) && door.useGears) return door.useGears();
+      G.say("lockedGears");
+    }
     else if (lock.type === "levers") G.say("lockedLevers", null, 2600);
     else if (lock.type === "bells") G.say("lockedBells", null, 2600);
     else if (lock.type === "beam") G.say("lockedBeam", null, 2800);
@@ -230,28 +233,30 @@ function gearLock(door, lock, lg, G, brass) {
     s.placed = G.is("placed:" + s.item) || door.isOpen;
     if (s.placed) { gm.visible = true; ring.visible = false; }
     all.push({ m: gm, r: s.r, dir: s.dir });
-    const tap = () => {
-      if (door.isOpen || s.placed) return false;
-      if (G.has(s.item)) {
-        G.take(s.item); G.flag("placed:" + s.item);
-        s.placed = true; gm.visible = true; ring.visible = false;
-        gm.position.z = z + 0.12;
-        G.tween(0.35, (k) => { gm.position.z = z + 0.12 - 0.08 * k; }, () => sfx.metal(G.worldPos(gm)));
-        if (slots.every((q) => q.placed)) {
-          spinning = true;
-          setTimeout(() => sfx.gearsTurning(G.worldPos(lg), 2.2), 400);
-          setTimeout(() => { sfx.unlock(G.worldPos(lg)); spinning = false; door.open(); }, 2700);
-        } else G.say("gearPlaced", null, 1500);
-      } else if (lock.items.some((it) => G.has(it))) {
-        sfx.wrong(G.worldPos(peg)); G.say("wrongGear", null, 2400);
-      } else {
-        G.say("needGear", null, 2000);
-      }
-      return true;
-    };
-    G.onTap(peg, tap, { owner: door.def.id });
-    G.onTap(ring, tap, { owner: door.def.id });
   });
+  // Ставим шестерёнку из кармана на её место (место подбирается по размеру само)
+  const placeOne = () => {
+    if (door.isOpen || door.solving) return false;
+    const s = slots.find((q) => !q.placed && G.has(q.item));
+    if (!s) {
+      G.say(slots.every((q) => q.placed) ? "gearPlaced" : "needGear", null, 2000);
+      return true;
+    }
+    G.take(s.item); G.flag("placed:" + s.item);
+    s.placed = true; s.gm.visible = true; s.ring.visible = false;
+    s.gm.position.z = z + 0.12;
+    G.tween(0.35, (k) => { s.gm.position.z = z + 0.12 - 0.08 * k; }, () => sfx.metal(G.worldPos(s.gm)));
+    if (slots.every((q) => q.placed)) {
+      door.solving = true;
+      spinning = true;
+      setTimeout(() => sfx.gearsTurning(G.worldPos(lg), 2.2), 400);
+      setTimeout(() => { sfx.unlock(G.worldPos(lg)); spinning = false; door.open(); }, 2700);
+    } else G.say("gearPlaced", null, 1500);
+    return true;
+  };
+  // нажатие в любое место механизма
+  G.onTap(lg, placeOne, { owner: door.def.id });
+  door.useGears = placeOne;
   let spinning = false;
   G.every((dt) => {
     if (!spinning) return;

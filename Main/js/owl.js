@@ -253,7 +253,9 @@ export class Owl {
         if (!pl.hidden && this.allowed(...pc) && d < cfg.sight) {
           const look = this.yaw + this.head.rotation.y;
           const cos = (Math.sin(look) * dx + Math.cos(look) * dz) / Math.max(d, 1e-3);
-          if ((cos > 0.35 || d < 2.4) && this.canSee(pl.x, pl.z)) {
+          // сова видит перед собой, а ещё слышит, если рядом кто-то бежит
+          const heard = pl.running && d < (cfg.hearing || 0);
+          if ((cos > (cfg.fov ?? 0.35) || d < 2.4 || heard) && this.canSee(pl.x, pl.z)) {
             this.state = "chase"; this.lostTime = 0; this.lastSeenCell = pc; this.route = null;
             this.setAlert(true);
             sfx.owlScreech(p.clone());

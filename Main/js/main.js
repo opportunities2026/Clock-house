@@ -16,7 +16,7 @@ import { t, tr, setLang, getLang } from "./i18n.js";
 import { sfx, unlockAudio, setVolume, updateListener, tickAudio, suspend } from "./audio.js";
 import { loadGame, saveGame, clearGame, loadSettings, saveSettings, loadProgress, unlockChapter } from "./save.js";
 
-const VERSION = "0.3.0";
+const VERSION = "0.4.0";
 const EYE = 1.5;            // рост Роберта (высота глаз), метры
 const RADIUS = 0.28;        // «толщина» Роберта для столкновений
 const WALK = 1.9, RUN = 3.3; // скорость, м/с
@@ -123,12 +123,14 @@ const G = {
     root.userData.inspectId = id;
   },
   has: (item) => state.inventory.includes(item),
-  give(item) {
+  selected: () => selectedItem,
+  unflag(f) { if (state.flags.delete(f)) persist(); },
+  give(item, { quiet = false } = {}) {
     if (!state.inventory.includes(item)) state.inventory.push(item);
     G.flag("got:" + item);
     sfx.pickup();
     if (level.items[item]?.icon === "lantern") takeLantern();
-    UI.toast(t("got", { item: tr(level.items[item]?.name) }));
+    if (!quiet) UI.toast(t("got", { item: tr(level.items[item]?.name) }));
     renderInv();
     UI.flashSlot(state.inventory.indexOf(item));
     persist();
@@ -288,7 +290,7 @@ function buildLevel() {
   if (level.owl) {
     owl = new Owl({
       cfg: level.owl, world, G, scene,
-      getPlayer: () => ({ x: player.x, z: player.z, hidden: !!inspect?.hide }),
+      getPlayer: () => ({ x: player.x, z: player.z, hidden: !!inspect?.hide, running: player.running }),
       onSpotted, onLost, onCaught,
     });
   }
@@ -348,6 +350,7 @@ function updatePlayer(dt) {
     vz = (fz * a.y + rz * a.x) * speed;
   }
   const ox = player.x, oz = player.z;
+  player.running = canWalk && a.run && Math.hypot(vx, vz) > WALK * 0.9;
   [player.x, player.z] = collide(player.x + vx * dt, player.z + vz * dt);
   const moved = Math.hypot(player.x - ox, player.z - oz);
   player.moving += ((moved / Math.max(dt, 1e-4) > 0.2 ? 1 : 0) - player.moving) * Math.min(1, dt * 8);
@@ -578,16 +581,38 @@ function frame(now) {
 requestAnimationFrame(frame);
 
 // ---------------------------------------------------------------- интерфейс
+// Нажатие на предмет в инвентаре выбирает его (подсвечивается). Выбранный
+// предмет используется первым — например, какую гирю положить на весы.
+let selectedItem = null;
 function renderInv() {
+  if (!state.inventory.includes(selectedItem)) selectedItem = null;
   UI.renderInventory(state.inventory, level.items, (id) => {
     const it = level.items[id];
+    selectedItem = selectedItem === id ? null : id;
+    sfx.click(null, 1.3);
     UI.toast(tr(it.name) + " — " + tr(it.about), 3200);
-  });
+    renderInv();
+  }, selectedItem);
 }
 
-function currentHint() {
+// Подсказки. hint может быть списком: сначала намёк, потом (не раньше чем через
+// HINT_WAIT секунд) подсказка подробнее.
+const HINT_WAIT = 40;
+const hintState = { obj: null, level: 0, time: 0 };
+function currentHint(ask = false) {
   const o = level.objectives.find((ob) => !state.flags.has(ob.done));
-  return o ? tr(o.hint) : "";
+  if (!o) return "";
+  const list = Array.isArray(o.hint) ? o.hint : [o.hint];
+  const now = performance.now() / 1000;
+  if (hintState.obj !== o) { hintState.obj = o; hintState.level = 0; hintState.time = ask ? now : -1e9; return tr(list[0]); }
+  if (!ask) return tr(list[hintState.level]);
+  if (hintState.time < 0) { hintState.time = now; return tr(list[hintState.level]); }
+  if (hintState.level < list.length - 1) {
+    const left = Math.ceil(HINT_WAIT - (now - hintState.time));
+    if (left > 0) return tr(list[hintState.level]) + "\n" + t("hintWait", { s: left });
+    hintState.level++; hintState.time = now;
+  }
+  return tr(list[hintState.level]);
 }
 
 const $ = (id) => document.getElementById(id);
@@ -738,7 +763,7 @@ $("set-sens").addEventListener("input", (e) => { settings.sensitivity = +e.targe
 
 $("btn-pause").addEventListener("click", (e) => { e.stopPropagation(); pause(); });
 $("btn-back").addEventListener("click", (e) => { e.stopPropagation(); leaveInspect(); });
-$("btn-hint").addEventListener("click", (e) => { e.stopPropagation(); sfx.click(null, 0.6); UI.toast(currentHint(), 6000); });
+$("btn-hint").addEventListener("click", (e) => { e.stopPropagation(); sfx.click(null, 0.6); UI.toast(currentHint(true), 7000); });
 $("btn-diary").addEventListener("click", (e) => {
   e.stopPropagation();
   $("btn-diary").classList.remove("pulse");

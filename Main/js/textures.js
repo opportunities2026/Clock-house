@@ -795,6 +795,7 @@ export function scratchTexture(pattern) {
   const n = pattern.length, step = W / (n + 1);
   pattern.forEach((p, i) => {
     const x = step * (i + 1), up = p === "up";
+    if (p === "moon" || p === "sun" || p === "star") { ctx.lineWidth = 8; drawSymbol(ctx, p, x, H / 2, Math.min(step * 0.42, 90), true); ctx.lineWidth = 9; return; }
     ctx.beginPath(); ctx.moveTo(x, up ? 200 : 56); ctx.lineTo(x, up ? 56 : 200);
     ctx.moveTo(x - 34, up ? 92 : 164); ctx.lineTo(x, up ? 56 : 200); ctx.lineTo(x + 34, up ? 92 : 164);
     ctx.stroke();

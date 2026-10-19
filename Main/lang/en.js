@@ -83,7 +83,7 @@ export default {
   needValve: "There's no valve wheel on the pipe. The water can't be drained without it.",
   valvePlaced: "The valve wheel clicked into place. Now you can turn it!",
   waterGone: "The water gurgles away into the pipes!",
-  midnight: "The clock strikes midnight… The Guardian flies to its nest.",
+  midnight: "The clock chimes… The Guardian yawns and flies to its nest.",
   clockDone: "The clock shows midnight. The Guardian is asleep.",
   handPlaced: "The minute hand is in place! Now tap the hands to set the clock.",
   clockNoHand: "The clock has no minute hand.",
@@ -101,4 +101,7 @@ export default {
   weightPlaced: "The weight settles on the pan. The scales sway!",
   balanced: "The scales balance! A secret drawer clicks open below.",
   drawerLocked: "The drawer is locked. It will open when the scales balance.",
+  hintWait: "(More detail in {s} s.)",
+  weightRemoved: "You took the weight off the pan.",
+  tooHeavy: "Too heavy! The right pan sank. Tap a weight on the pan to take it off.",
 };

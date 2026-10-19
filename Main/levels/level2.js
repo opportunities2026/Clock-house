@@ -52,7 +52,7 @@ export const level = {
 
   doors: [
     { id: "door4", number: 4, cell: [7, 3], side: "W",
-      lock: { type: "levers", pattern: ["up", "down", "up", "up"] } },
+      lock: { type: "levers", pattern: ["up", "down", "up", "up", "down"] } },
     { id: "door5", number: 5, cell: [23, 11], side: "W",
       lock: { type: "key", item: "silver_key" } },
   ],
@@ -64,9 +64,11 @@ export const level = {
     start: [18, 5],
     cells: "mwn",              // где сова может летать (в кладовую она не залетает)
     route: [[18, 5], [14, 7], [10, 9], [14, 13], [16, 9], [16, 7], [20, 5], [22, 1], [18, 1], [14, 3], [12, 5]],
-    speed: 1.3,                // скорость, когда просто патрулирует (м/с)
-    chaseSpeed: 2.6,           // скорость погони. Роберт бегом — 3.3, шагом — 1.9
-    sight: 8,                  // как далеко видит (м)
+    speed: 1.5,                // скорость, когда просто патрулирует (м/с)
+    chaseSpeed: 2.9,           // скорость погони. Роберт бегом — 3.3, шагом — 1.9
+    sight: 9,                  // как далеко видит (м)
+    fov: 0.2,                  // насколько широко смотрит (меньше — шире)
+    hearing: 4.5,              // слышит бегущего Роберта на таком расстоянии (м)
     perch: [20.5, 13.2],       // гнездо, где сова засыпает
     sleepFlag: "owl_asleep",
     dropItem: "silver_key",
@@ -94,40 +96,63 @@ export const level = {
     levers: {
       title: { ru: "Царапины на стене", en: "Scratches on the wall" },
       text: {
-        ru: "На стене нацарапаны стрелки: вверх, вниз, вверх, вверх.\nРядом подпись: «рычаги».",
-        en: "Arrows scratched into the wall: up, down, up, up.\nNext to them: “levers”.",
+        ru: "На стене нацарапаны значки: луна, солнце, луна, луна, солнце.\nРядом подпись: «рычаги».",
+        en: "Symbols scratched into the wall: moon, sun, moon, moon, sun.\nNext to them: “levers”.",
       },
+    },
+    skyRule: {
+      title: { ru: "Обрывок дневника", en: "A torn diary page" },
+      text: {
+        ru: "…каждый вечер я смотрю в окно мастерской: луна всходит, а солнце заходит. Так же устроены и мои рычаги…",
+        en: "…every evening I look out of the workshop window: the moon rises and the sun sets. My levers work the same way…",
+      },
+    },
+    plaqueH: {
+      title: { ru: "Табличка в тупике", en: "Plaque in a dead end" },
+      text: { ru: "На латунной табличке выбито:\n«ЧАСЫ — IV»", en: "Engraved on a brass plaque:\n“HOURS — IV”" },
+    },
+    plaqueM: {
+      title: { ru: "Табличка у стены", en: "Plaque on the wall" },
+      text: { ru: "На латунной табличке выбито:\n«МИНУТЫ — 45»", en: "Engraved on a brass plaque:\n“MINUTES — 45”" },
     },
     nest: {
       title: { ru: "Как усыпить Стража", en: "How to put the Guardian to sleep" },
       text: {
-        ru: "Страж засыпает ровно в полночь — когда часы в его гнезде показывают 12:00.\n\nМинутную стрелку я снял, чтобы он не уснул раньше времени. Вот она, забирай.\n\nГнездо — за затопленным коридором. Чтобы спустить воду, вставь вентиль в трубу. Вентиль лежит в дальнем тупике на востоке.",
-        en: "The Guardian falls asleep exactly at midnight, when the clock in its nest shows 12:00.\n\nI took the minute hand off so it wouldn't fall asleep too early. Here it is, take it.\n\nThe nest is past the flooded corridor. To drain the water, put the valve wheel on the pipe. The wheel is in the far dead end to the east.",
+        ru: "Страж засыпает в тот самый час, когда я завёл его впервые. Если часы в его гнезде покажут это время — он улетит спать.\n\nВремя я выбил на двух латунных табличках в лабиринте: на одной — часы, на другой — минуты.\n\nМинутную стрелку я снял, чтобы он не уснул раньше времени. Вот она, забирай.\n\nГнездо — за затопленным коридором. Без вентиля воду не спустить.",
+        en: "The Guardian falls asleep at the very hour I first wound it up. If the clock in its nest shows that time, it will fly off to sleep.\n\nI engraved the time on two brass plaques in the maze: one shows the hours, the other the minutes.\n\nI took the minute hand off so it wouldn't fall asleep too early. Here it is, take it.\n\nThe nest is past the flooded corridor. You can't drain the water without the valve wheel.",
       },
     },
   },
 
+  // Подсказки: первая — намёк, вторая (через 40 секунд) — подробнее
   objectives: [
     { done: "got:lantern",
-      hint: { ru: "В подвале темно. Поищи фонарь на полке у стены.", en: "It's dark in the cellar. Look for a lantern on the shelf by the wall." } },
+      hint: [{ ru: "Внизу темно. Что поможет видеть дальше?", en: "It's dark down here. What would help you see further?" },
+             { ru: "Фонарь стоит на полке у стены кладовой.", en: "The lantern is on the shelf by the storage room wall." }] },
     { done: "open:door4",
-      hint: { ru: "Дверь №4 открывается рычагами. Подсказка нацарапана на стене рядом с дверью.", en: "Door 4 opens with levers. The clue is scratched on the wall next to the door." } },
+      hint: [{ ru: "На стене рядом с дверью №4 что-то нацарапано. А в кладовой есть ещё одна записка.", en: "Something is scratched on the wall next to door 4. And there's another note in the storage room." },
+             { ru: "Луна всходит — рычаг вверх. Солнце заходит — рычаг вниз. Считай значки слева направо.", en: "The moon rises: lever up. The sun sets: lever down. Read the symbols from left to right." }] },
     { done: "got:minute_hand",
-      hint: { ru: "Найди в лабиринте записку дедушки — она в тупике на юге. Если Страж тебя заметил, толкни джойстик до края, чтобы бежать, и спрячься в шкаф.", en: "Find Grandpa's note in the maze: it's in a dead end to the south. If the Guardian spots you, push the joystick all the way to run, and hide in a wardrobe." } },
+      hint: [{ ru: "Дедушка оставил записку где-то в лабиринте. Остерегайся Стража — и не бегай рядом с ним, он слышит шаги!", en: "Grandpa left a note somewhere in the maze. Beware of the Guardian, and don't run near it: it hears footsteps!" },
+             { ru: "Записка и минутная стрелка лежат в тупике на юге лабиринта.", en: "The note and the minute hand are in a dead end in the south of the maze." }] },
     { done: "got:valve_wheel",
-      hint: { ru: "Вентиль лежит в дальнем тупике на востоке лабиринта.", en: "The valve wheel is in the far eastern dead end of the maze." } },
+      hint: [{ ru: "Чтобы спустить воду, нужен вентиль. Обойди все тупики.", en: "You need a valve wheel to drain the water. Check every dead end." },
+             { ru: "Вентиль лежит на ящике в тупике на востоке лабиринта.", en: "The valve wheel is on a crate in a dead end in the east of the maze." }] },
     { done: "drained",
-      hint: { ru: "Вставь вентиль в трубу у затопленного коридора и поверни его.", en: "Put the valve wheel on the pipe by the flooded corridor and turn it." } },
+      hint: [{ ru: "Возле воды есть труба.", en: "There's a pipe near the water." },
+             { ru: "Нажми на трубу у затопленного коридора, вставь вентиль и поверни его.", en: "Tap the pipe by the flooded corridor, put the wheel on and turn it." }] },
     { done: "placed:minute_hand",
-      hint: { ru: "Поставь минутную стрелку на большие часы в гнезде Стража.", en: "Put the minute hand on the big clock in the Guardian's nest." } },
+      hint: [{ ru: "У больших часов в гнезде чего-то не хватает.", en: "The big clock in the nest is missing something." },
+             { ru: "Нажми на часы в гнезде — минутная стрелка встанет на место.", en: "Tap the clock in the nest and the minute hand will go on." }] },
     { done: "owl_asleep",
-      hint: { ru: "Страж засыпает в полночь. Нажимай на стрелки, пока часы не покажут 12:00.", en: "The Guardian sleeps at midnight. Tap the hands until the clock shows 12:00." } },
+      hint: [{ ru: "В какое время засыпает Страж? Дедушка выбил его на двух табличках в лабиринте.", en: "What time does the Guardian fall asleep? Grandpa engraved it on two plaques in the maze." },
+             { ru: "Одна табличка в северо-восточном тупике, другая — на западной стене лабиринта. IV — это римская цифра 4.", en: "One plaque is in the north-east dead end, the other on the west wall of the maze. IV is the Roman numeral for 4." }] },
     { done: "got:silver_key",
-      hint: { ru: "Страж уснул! Под его гнездом лежит ключ.", en: "The Guardian is asleep! There's a key under its nest." } },
+      hint: [{ ru: "Страж уснул! Посмотри под его гнездом.", en: "The Guardian is asleep! Look under its nest." }] },
     { done: "open:door5",
-      hint: { ru: "Открой дверь №5 серебряным ключом.", en: "Open door 5 with the silver key." } },
+      hint: [{ ru: "Открой дверь №5 серебряным ключом.", en: "Open door 5 with the silver key." }] },
     { done: "chapter_end",
-      hint: { ru: "Поднимайся по лестнице!", en: "Climb the stairs!" } },
+      hint: [{ ru: "Поднимайся по лестнице!", en: "Climb the stairs!" }] },
   ],
 
   objects: [
@@ -141,18 +166,19 @@ export const level = {
     { type: "barrel", x: 1.6, z: 5.4 },
     { type: "barrel", x: 2.4, z: 5.5 },
     { type: "wineRack", x: 1.13, z: 3.6, rot: 90 },
-    { type: "chalkArrows", x: 6.98, z: 4.7, rot: -90, pattern: ["up", "down", "up", "up"], note: "levers" },
+    { type: "chalkArrows", x: 6.98, z: 4.7, rot: -90, pattern: ["moon", "sun", "moon", "moon", "sun"], note: "levers" },
+    { type: "wallNote", x: 3.2, z: 5.98, rot: 180, note: "skyRule" },
     { type: "cobweb", x: 1.0, z: 1.0, corner: "nw" },
     { type: "cobweb", x: 7.0, z: 6.0, corner: "se" },
     { type: "cat", spots: [
       { x: 2.8, z: 3.0, rot: 120, until: "got:lantern",
-        hint: { ru: "Мяу! Тик смотрит на полку у стены. Кажется, там что-то блестит.", en: "Meow! Tik is looking at the shelf by the wall. Something is shining there." } },
+        hint: { ru: "Мяу! Тик щурится в темноту. Ему-то хорошо, он и так всё видит…", en: "Meow! Tik squints into the dark. Lucky him, he can see anyway…" } },
       { x: 6.2, z: 4.0, rot: -60, until: "open:door4",
-        hint: { ru: "Мррр… Тик трётся о дверь и поглядывает на царапины на стене.", en: "Purr… Tik rubs against the door and glances at the scratches on the wall." } },
+        hint: { ru: "Мррр… Тик сидит у двери и смотрит то на луну, то на солнце. Странный кот.", en: "Purr… Tik sits by the door looking at the moon, then at the sun. Strange cat." } },
       { x: 14.4, z: 11.5, rot: -90, until: "drained",
-        hint: { ru: "Тик не любит воду. Он сидит у трубы на стене и мяукает.", en: "Tik doesn't like water. He sits by the pipe on the wall and meows." } },
+        hint: { ru: "Тик не любит воду. Он фыркает и смотрит на стену.", en: "Tik doesn't like water. He snorts and stares at the wall." } },
       { x: 20.5, z: 9.8, rot: 180, until: "owl_asleep",
-        hint: { ru: "Тик смотрит на большие часы и тихонько мурлычет: «полночь, полночь…»", en: "Tik looks at the big clock and purrs softly: “midnight, midnight…”" } },
+        hint: { ru: "Тик смотрит на большие часы и зевает. Наверное, тоже знает, когда пора спать.", en: "Tik looks at the big clock and yawns. He probably knows when it's bedtime too." } },
       { x: 21.5, z: 12.3, rot: 0, until: "chapter_end",
         hint: { ru: "Тик спокойно умывается рядом со спящим Стражем. Пора наверх!", en: "Tik washes calmly next to the sleeping Guardian. Time to go up!" } },
     ] },
@@ -180,7 +206,10 @@ export const level = {
 
     // ---------- ГНЕЗДО СТРАЖА ----------
     { type: "hangingLamp", x: 20.5, z: 11.2, power: 9 },
-    { type: "nestClock", id: "nestclock", x: 20.5, z: 9.02, rot: 0, item: "minute_hand", hour: 9, minute: 30 },
+    { type: "nestClock", id: "nestclock", x: 20.5, z: 9.02, rot: 0, item: "minute_hand", hour: 9, minute: 30,
+      target: { hour: 4, minute: 45 } },   // время, когда Страж засыпает (см. таблички)
+    { type: "plaque", x: 22.98, z: 1.5, rot: -90, note: "plaqueH", lines: { ru: ["ЧАСЫ", "IV"], en: ["HOURS", "IV"] } },
+    { type: "plaque", x: 8.02, z: 7.5, rot: 90, note: "plaqueM", lines: { ru: ["МИНУТЫ", "45"], en: ["MINUTES", "45"] } },
     { type: "perch", x: 20.5, z: 13.2 },
     { type: "wardrobe", id: "wardrobe4", x: 18.25, z: 12.8, rot: 90 },
     { type: "gearDecor", x: 22.97, z: 9.6, rot: -90 },

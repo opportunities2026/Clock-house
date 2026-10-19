@@ -54,7 +54,7 @@ Object.assign(BUILDERS, {
     const rim = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.02, 8, 40), iron); rim.position.y = -2.05; pivot.add(rim);
     G.every((dt, time) => { pivot.rotation.z = Math.sin(time * Math.PI / 1.6) * 0.22; });
     addTicking(G.worldPos(g, [0, 2.6, 0]), { loud: 1.6, pitch: 0.55 });
-    G.onTap(pivot, () => { G.say("pendulumMsg"); return true; });
+    G.onTap(pivot, () => { if (def.note) G.showNote(def.note); else G.say("pendulumMsg"); return true; });
     return { group: g, noCollide: true };
   },
 
@@ -180,24 +180,42 @@ Object.assign(BUILDERS, {
     const big = weightMesh(def.left || 6); big.scale.setScalar(1.25); big.position.y = 0.0; pans[0].plate.add(big);
     blobShadow(1.0, 0.6, g, 0.45);
 
-    const placed = def.items.filter((it) => G.is("placed:" + it));
+    const left = def.left || 6;
     const value = (it) => G.items[it]?.value || 1;
-    const rightMeshes = [];
-    const addRight = (it, i) => {
-      const w = weightMesh(value(it));
-      w.position.set((i - 1) * 0.11, 0, (i % 2) * 0.04);
-      pans[1].plate.add(w);
-      rightMeshes.push(w);
+    const onPan = () => def.items.filter((it) => G.is("placed:" + it));
+    const total = () => onPan().reduce((a, it) => a + value(it), 0);
+    const meshes = new Map();
+    // гири на правой чаше: нажми на гирю, чтобы снять её обратно
+    const layout = () => {
+      const list = onPan();
+      list.forEach((it, i) => {
+        let w = meshes.get(it);
+        if (!w) {
+          w = weightMesh(value(it));
+          hitProxy(w, 0.07);
+          meshes.set(it, w);
+          pans[1].plate.add(w);
+          G.onTap(w, () => {
+            if (G.is(def.flag)) return false;
+            G.unflag("placed:" + it);
+            pans[1].plate.remove(w); meshes.delete(it);
+            G.give(it, { quiet: true });
+            sfx.weight(G.worldPos(pans[1].plate));
+            layout();
+            G.say("weightRemoved", null, 2000);
+            return true;
+          }, { owner: def.id });
+        }
+        w.position.set((i - (list.length - 1) / 2) * 0.1, 0, (i % 2) * 0.03);
+      });
     };
-    placed.forEach(addRight);
-    const total = () => def.items.filter((it) => G.is("placed:" + it)).reduce((a, it) => a + value(it), 0);
+    layout();
     let tilt = 0;
-    const targetTilt = () => THREE.MathUtils.clamp(((def.left || 6) - total()) / (def.left || 6), -1, 1) * 0.28;
+    const targetTilt = () => THREE.MathUtils.clamp((left - total()) / left, -1, 1) * 0.28;
     tilt = targetTilt();
     // ключ в ящике
-    let key = null;
     if (def.reward) {
-      key = itemMesh(def.reward, G.items);
+      const key = itemMesh(def.reward, G.items);
       key.position.set(0, -0.06, 0.08); drawer.add(key);
       pickable(G, key, def.reward, def.id, () => G.is(def.flag));
     }
@@ -209,12 +227,15 @@ Object.assign(BUILDERS, {
     });
     const tapPan = () => {
       if (G.is(def.flag)) return false;
-      const it = def.items.find((x) => G.has(x));
+      // кладём выбранную в инвентаре гирю, а если ничего не выбрано — первую попавшуюся
+      const sel = G.selected();
+      const it = def.items.includes(sel) && G.has(sel) ? sel : def.items.find((x) => G.has(x));
       if (!it) { G.say(total() ? "needMoreWeights" : "balanceEmpty", null, 3000); return true; }
       G.take(it); G.flag("placed:" + it);
-      addRight(it, rightMeshes.length);
+      layout();
       sfx.weight(G.worldPos(pans[1].plate));
-      if (total() === (def.left || 6)) {
+      const tt = total();
+      if (tt === left) {
         setTimeout(() => {
           G.flag(def.flag);
           sfx.crystal(G.worldPos(g, [0, 1.5, 0]));
@@ -222,7 +243,7 @@ Object.assign(BUILDERS, {
           G.tween(0.6, (k) => { drawer.position.z = 0.3 * k; });
           G.say("balanced", null, 3500);
         }, 1200);
-      } else G.say("weightPlaced", null, 2200);
+      } else G.say(tt > left ? "tooHeavy" : "weightPlaced", null, 2600);
       return true;
     };
     for (const p of pans) G.onTap(p.hang, tapPan, { owner: def.id });

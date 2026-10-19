@@ -165,6 +165,34 @@ Object.assign(BUILDERS, {
     return { group: g, noCollide: true };
   },
 
+  // Записка, приколотая к стене
+  wallNote(def, G) {
+    const g = new THREE.Group();
+    const p = plane(0.24, 0.32, new THREE.MeshStandardMaterial({ map: T.paperTexture(7), roughness: 0.9, side: THREE.DoubleSide }), 0, def.y || 1.45, 0.012, g);
+    p.rotation.z = (def.tilt || 0.08);
+    sphere(0.012, T.metal("#8a1e14", 0.4), 0, (def.y || 1.45) + 0.13, 0.02, g, 8);
+    hitProxy(p, 0.18);
+    G.onTap(g, () => { G.showNote(def.note); return true; });
+    return { group: g, noCollide: true };
+  },
+
+  // Латунная табличка с надписью на стене
+  plaque(def, G) {
+    const g = new THREE.Group();
+    const mat = new THREE.MeshStandardMaterial({ metalness: 0.8, roughness: 0.35 });
+    const p = rbox(0.42, 0.28, 0.015, 0.01, mat, 0, def.y || 1.5, 0.008, g);
+    for (const [x, y] of [[-0.18, 0.11], [0.18, 0.11], [-0.18, -0.11], [0.18, -0.11]]) sphere(0.01, T.metal("#5a4426", 0.4), x, (def.y || 1.5) + y, 0.018, g, 6);
+    const draw = () => {
+      mat.map?.dispose();
+      mat.map = T.textTexture(tr(def.lines), { w: 512, h: 340, font: "bold 96px Georgia, serif" });
+      mat.needsUpdate = true;
+    };
+    draw(); G.onLang(draw);
+    hitProxy(p, 0.25);
+    G.onTap(g, () => { G.showNote(def.note); return true; });
+    return { group: g, noCollide: true };
+  },
+
   cobweb(def) {
     const g = new THREE.Group();
     const dir = { nw: [1, 1], ne: [-1, 1], sw: [1, -1], se: [-1, -1] }[def.corner || "nw"];
@@ -397,7 +425,7 @@ Object.assign(BUILDERS, {
 
     const st = { hour: def.hour || 9, minute: def.minute || 30, placed: G.is("placed:" + def.item) };
     const solved = () => G.is(G.level.owl?.sleepFlag || "owl_asleep");
-    if (solved()) { st.hour = 12; st.minute = 0; st.placed = true; }
+    if (solved()) { st.hour = (def.target || {}).hour || 12; st.minute = (def.target || {}).minute || 0; st.placed = true; }
     minG.visible = st.placed;
     const angH = () => -((st.hour % 12) / 12 + st.minute / 720) * Math.PI * 2;
     const angM = () => -(st.minute / 60) * Math.PI * 2;
@@ -408,8 +436,9 @@ Object.assign(BUILDERS, {
       minG.rotation.z += (tM - minG.rotation.z) * Math.min(1, dt * 10);
       pend.rotation.z = Math.sin(time * 2.4) * 0.12;
     });
+    const target = def.target || { hour: 12, minute: 0 };
     const check = () => {
-      if (st.placed && st.hour === 12 && st.minute === 0 && !solved()) {
+      if (st.placed && st.hour === target.hour && st.minute === target.minute && !solved()) {
         setTimeout(() => {
           sfx.bong(G.worldPos(face), 3);
           G.say("midnight", null, 3500);
