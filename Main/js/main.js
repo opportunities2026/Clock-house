@@ -14,9 +14,9 @@ import * as T from "./textures.js";
 import * as UI from "./ui.js";
 import { t, tr, setLang, getLang } from "./i18n.js";
 import { sfx, unlockAudio, setVolume, updateListener, tickAudio, suspend } from "./audio.js";
-import { loadGame, saveGame, clearGame, loadSettings, saveSettings, loadProgress, unlockChapter } from "./save.js";
+import { loadGame, saveGame, clearGame, loadSettings, saveSettings, loadProgress, unlockChapter, completeChapter } from "./save.js";
 
-const VERSION = "0.4.0";
+const VERSION = "0.5.0";
 const EYE = 1.5;            // рост Роберта (высота глаз), метры
 const RADIUS = 0.28;        // «толщина» Роберта для столкновений
 const WALK = 1.9, RUN = 3.3; // скорость, м/с
@@ -32,6 +32,12 @@ const hashPlay = location.hash.startsWith("#play") ? (location.hash.split("-")[1
 const level = LEVELS[hashPlay || bootSave?.chapter || "chapter1"] || LEVELS.chapter1;
 // Старые сохранения первой главы: если она пройдена, открываем вторую
 if (bootSave && !bootSave.chapter && bootSave.flags?.includes("chapter_end")) unlockChapter("chapter2");
+// Пройденные главы: всё, что перед последней открытой главой, считаем пройденным
+{
+  const p = loadProgress();
+  ORDER.forEach((id, i) => { if (p.unlocked.includes(ORDER[i + 1])) completeChapter(id); });
+  if (bootSave?.chapter && bootSave.flags?.includes("chapter_end")) completeChapter(bootSave.chapter);
+}
 const savedEnded = !hashPlay && bootSave?.flags?.includes("chapter_end");
 const continueNext = savedEnded && level.next ? level.next : null;
 
@@ -537,6 +543,7 @@ async function endChapter() {
   } else {
     sfx.breath(false, 2);
   }
+  completeChapter(level.id);
   if (level.next) unlockChapter(level.next);
   await new Promise((r) => setTimeout(r, 2500));
   await UI.fade(true, 1500);
@@ -597,7 +604,7 @@ function renderInv() {
 
 // Подсказки. hint может быть списком: сначала намёк, потом (не раньше чем через
 // HINT_WAIT секунд) подсказка подробнее.
-const HINT_WAIT = 40;
+const HINT_WAIT = 60;
 const hintState = { obj: null, level: 0, time: 0 };
 function currentHint(ask = false) {
   const o = level.objectives.find((ob) => !state.flags.has(ob.done));
@@ -625,6 +632,7 @@ function refreshMenu() {
   $("version").textContent = `${t("version")} ${VERSION}`;
   $("menu-subtitle").textContent = tr(level.title);
   $("btn-chapters").style.display = loadProgress().unlocked.length > 1 ? "" : "none";
+  $("btn-pause-chapters").style.display = loadProgress().unlocked.length > 1 ? "" : "none";
 }
 
 function playChapter(id) {
@@ -632,16 +640,19 @@ function playChapter(id) {
   location.reload();
 }
 
-function showChapters() {
+let chaptersBack = "menu";
+function showChapters(from = "menu") {
+  chaptersBack = from;
   const list = $("chapter-list");
   list.innerHTML = "";
-  const unlocked = loadProgress().unlocked;
+  const { unlocked, completed } = loadProgress();
   for (const id of ORDER) {
     const b = document.createElement("button");
     b.className = "btn" + (id === level.id ? " primary" : "");
-    b.textContent = tr(LEVELS[id].title);
+    b.textContent = tr(LEVELS[id].title) + (completed.includes(id) ? "  ✓" : "");
     b.disabled = !unlocked.includes(id);
     if (b.disabled) b.textContent += " 🔒";
+    else if (completed.includes(id)) b.title = t("replay");
     b.addEventListener("click", async () => {
       if (loadGame()?.flags?.length && !(await UI.confirmDialog(t("chapterConfirm")))) return;
       playChapter(id);
@@ -737,8 +748,9 @@ $("btn-new").addEventListener("click", async () => {
   startGame(true);
 });
 $("btn-continue").addEventListener("click", () => { if (!started && continueNext) playChapter(continueNext); else startGame(false); });
-$("btn-chapters").addEventListener("click", showChapters);
-$("btn-chapters-back").addEventListener("click", () => UI.showScreen("menu"));
+$("btn-chapters").addEventListener("click", () => showChapters("menu"));
+$("btn-pause-chapters").addEventListener("click", () => showChapters("pause"));
+$("btn-chapters-back").addEventListener("click", () => UI.showScreen(chaptersBack));
 $("btn-end-next").addEventListener("click", () => { if (level.next) playChapter(level.next); });
 $("btn-settings").addEventListener("click", () => openSettings("menu"));
 $("btn-resume").addEventListener("click", resume);

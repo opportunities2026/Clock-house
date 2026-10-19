@@ -119,22 +119,52 @@ Object.assign(BUILDERS, {
   },
 
   barrel(def, G) {
-    const m = mats(), g = new THREE.Group();
+    const g = new THREE.Group(), inner = new THREE.Group(); g.add(inner);
     const pts = [];
     for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push(new THREE.Vector2(0.27 + Math.sin(t * Math.PI) * 0.05, t * 0.85)); }
     const body = new THREE.Mesh(new THREE.LatheGeometry(pts, 24), T.woodMaterial("#5a3a20", { seed: 53, rough: 0.85 }));
-    g.add(body);
-    const top = new THREE.Mesh(new THREE.CircleGeometry(0.27, 24), T.woodMaterial("#4a3018", { seed: 54, vertical: false }));
-    top.rotation.x = -Math.PI / 2; top.position.y = 0.85; g.add(top);
+    inner.add(body);
+    for (const y of [0, 0.85]) {
+      const lid = new THREE.Mesh(new THREE.CircleGeometry(0.27, 24), T.woodMaterial("#4a3018", { seed: 54, vertical: false }));
+      lid.rotation.x = y ? -Math.PI / 2 : Math.PI / 2; lid.position.y = y; inner.add(lid);
+    }
     for (const y of [0.1, 0.32, 0.53, 0.75]) {
       const r = 0.27 + Math.sin((y / 0.85) * Math.PI) * 0.05 + 0.004;
       const hoop = new THREE.Mesh(new THREE.TorusGeometry(r, 0.008, 6, 32), T.metal("#3a3a3a", 0.6));
-      hoop.rotation.x = Math.PI / 2; hoop.position.y = y; g.add(hoop);
+      hoop.rotation.x = Math.PI / 2; hoop.position.y = y; inner.add(hoop);
     }
-    if (def.tilt) g.rotation.z = 0.05;
-    blobShadow(0.6, 0.6, g);
-    G.onTap(g, () => { G.say("barrelMsg"); return true; });
-    return { group: g, w: 0.62, d: 0.62 };
+    if (def.lying) {
+      // бочка лежит на боку
+      inner.rotation.z = Math.PI / 2; inner.position.set(0.425, 0.32, 0);
+      blobShadow(0.85, 0.6, g);
+    } else {
+      if (def.tilt) inner.rotation.z = 0.05;
+      blobShadow(0.6, 0.6, g);
+    }
+    G.onTap(g, () => { G.say(def.lying ? "barrelLyingMsg" : "barrelMsg"); return true; });
+    return def.lying ? { group: g, w: 0.87, d: 0.66 } : { group: g, w: 0.62, d: 0.62 };
+  },
+
+  // Остановившиеся часы на стене. cracked — разбитое стекло.
+  stoppedClock(def, G) {
+    const m = mats(), g = new THREE.Group();
+    const R = def.r || 0.2, y = def.y || 1.75;
+    const body = cyl(R + 0.035, R + 0.035, 0.06, def.cracked ? m.dark : m.gold, 0, y, 0.03, g, 32); body.rotation.x = Math.PI / 2;
+    const face = new THREE.Mesh(new THREE.CircleGeometry(R, 32), new THREE.MeshStandardMaterial({ map: T.clockFace(), roughness: 0.5 }));
+    face.position.set(0, y, 0.062); g.add(face);
+    const handMat = T.plain("#120c06", 0.5);
+    const hourA = -(((def.hour % 12) + def.minute / 60) / 12) * Math.PI * 2;
+    const minA = -(def.minute / 60) * Math.PI * 2;
+    for (const [a, len, w] of [[hourA, R * 0.5, 0.016], [minA, R * 0.8, 0.01]]) {
+      const hg = new THREE.Group(); hg.position.set(0, y, 0.066); hg.rotation.z = a; g.add(hg);
+      box(w, len, 0.004, handMat, 0, len / 2, 0, hg);
+    }
+    sphere(0.012, handMat, 0, y, 0.07, g, 8);
+    const glass = new THREE.Mesh(new THREE.CircleGeometry(R, 32), new THREE.MeshStandardMaterial({ map: def.cracked ? T.crackTexture() : null, color: "#ffffff", transparent: true, opacity: def.cracked ? 0.9 : 0.12, roughness: 0.05, depthWrite: false }));
+    glass.position.set(0, y, 0.075); g.add(glass);
+    G.addInspect(def.id, g, { pos: [0, y, 0.55], target: [0, y, 0] });
+    G.onTap(g, () => { G.say(def.cracked ? "crackedClockMsg" : "stoppedClockMsg", null, 2600); return true; }, { owner: def.id });
+    return { group: g, noCollide: true };
   },
 
   wineRack(def, G) {
@@ -460,7 +490,7 @@ Object.assign(BUILDERS, {
     }, { owner: id });
     G.onTap(minProxy, () => {
       if (solved() || !st.placed) return false;
-      st.minute = (st.minute + 15) % 60; tM = closest(tM, angM()); tH = closest(tH, angH());
+      st.minute = (st.minute + (def.minuteStep || 15)) % 60; tM = closest(tM, angM()); tH = closest(tH, angH());
       sfx.click(G.worldPos(face), 1.1); check(); return true;
     }, { owner: id });
     G.onTap(g, () => {

@@ -804,6 +804,29 @@ export function scratchTexture(pattern) {
   return t;
 }
 
+// Трещины на стекле
+export function crackTexture() {
+  return cached("crack", () => {
+    const S = 256, c = canvas(S, S), ctx = c.getContext("2d"), r = rng(13);
+    ctx.clearRect(0, 0, S, S);
+    ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = 1.6;
+    const cx = S * 0.62, cy = S * 0.38;
+    for (let k = 0; k < 9; k++) {
+      let x = cx, y = cy, a = (k / 9) * Math.PI * 2 + r() * 0.4;
+      ctx.beginPath(); ctx.moveTo(x, y);
+      for (let i = 0; i < 6; i++) { a += (r() - 0.5) * 0.7; x += Math.cos(a) * (12 + r() * 20); y += Math.sin(a) * (12 + r() * 20); ctx.lineTo(x, y); }
+      ctx.stroke();
+    }
+    for (let ring = 1; ring < 4; ring++) {
+      ctx.beginPath();
+      for (let k = 0; k <= 9; k++) { const a = (k / 9) * Math.PI * 2, rr = ring * 16 + r() * 6; k ? ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr) : ctx.moveTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr); }
+      ctx.stroke();
+    }
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  });
+}
+
 export function waterTexture() {
   return cached("water", () => {
     const S = 256, c = canvas(S, S), ctx = c.getContext("2d"), r = rng(5);

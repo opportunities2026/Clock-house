@@ -206,6 +206,7 @@ Object.assign(BUILDERS, {
             sfx.weight(G.worldPos(pans[1].plate));
             layout();
             G.say("weightRemoved", null, 2000);
+            check(false);
             return true;
           }, { owner: def.id });
         }
@@ -228,6 +229,22 @@ Object.assign(BUILDERS, {
       beamPivot.rotation.z = tilt;
       for (const p of pans) p.hang.rotation.z = -tilt; // чаши висят ровно
     });
+    // проверяем весы; talk — говорить ли, что получилось
+    const check = (talk) => {
+      const tt = total();
+      const countOk = !def.count || onPan().length === def.count;
+      if (tt === left && countOk) {
+        setTimeout(() => {
+          G.flag(def.flag);
+          sfx.crystal(G.worldPos(g, [0, 1.5, 0]));
+          sfx.drawer(G.worldPos(drawer), true);
+          G.tween(0.6, (k) => { drawer.position.z = 0.3 * k; });
+          G.say("balanced", null, 3500);
+        }, 1200);
+      } else if (talk) {
+        G.say(tt === left ? "wrongCount" : tt > left ? "tooHeavy" : "weightPlaced", null, 3200);
+      }
+    };
     const tapPan = () => {
       if (G.is(def.flag)) return false;
       // кладём выбранную в инвентаре гирю, а если ничего не выбрано — первую попавшуюся
@@ -237,22 +254,71 @@ Object.assign(BUILDERS, {
       G.take(it); G.flag("placed:" + it);
       layout();
       sfx.weight(G.worldPos(pans[1].plate));
-      const tt = total();
-      if (tt === left) {
-        setTimeout(() => {
-          G.flag(def.flag);
-          sfx.crystal(G.worldPos(g, [0, 1.5, 0]));
-          sfx.drawer(G.worldPos(drawer), true);
-          G.tween(0.6, (k) => { drawer.position.z = 0.3 * k; });
-          G.say("balanced", null, 3500);
-        }, 1200);
-      } else G.say(tt > left ? "tooHeavy" : "weightPlaced", null, 2600);
+      check(true);
       return true;
     };
     for (const p of pans) G.onTap(p.hang, tapPan, { owner: def.id });
     G.onTap(drawer, () => { if (!G.is(def.flag)) { sfx.locked(G.worldPos(drawer)); G.say("drawerLocked"); } return true; }, { owner: def.id });
     G.addInspect(def.id, g, { pos: [0, 1.45, 1.35], target: [0, 1.0, 0] });
     return { group: g, w: 1.2, d: 0.6 };
+  },
+
+  // Куранты: заведи — и молоточки сыграют песню башни на трёх колокольчиках
+  chimeBox(def, G) {
+    const m = mats(), g = new THREE.Group(), brass = T.metal("#c09a5c", 0.3);
+    const W = 0.9, Hc = 1.15, D = 0.45;
+    const wood = T.woodMaterial("#4a2a16", { seed: 95 });
+    box(W, 0.08, D, m.dark, 0, 0.04, 0, g);
+    box(W, 0.06, D, m.dark, 0, Hc, 0, g);
+    for (const s of [-1, 1]) box(0.05, Hc, D, wood, s * (W / 2 - 0.025), Hc / 2, 0, g);
+    box(W, Hc, 0.02, wood, 0, Hc / 2, -D / 2 + 0.01, g);
+    // стекло спереди
+    const glass = new THREE.Mesh(new THREE.PlaneGeometry(W - 0.1, Hc - 0.14), new THREE.MeshStandardMaterial({ color: "#a8c0c8", transparent: true, opacity: 0.12, roughness: 0.05, depthWrite: false }));
+    glass.position.set(0, Hc / 2, D / 2); g.add(glass);
+    box(W - 0.1, 0.03, 0.03, brass, 0, 0.92, 0, g);
+    const kinds = [["low", 0.12, -0.26], ["mid", 0.09, 0], ["high", 0.065, 0.24]];
+    const hammers = {};
+    for (const [kind, R, x] of kinds) {
+      const pts = [];
+      for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push(new THREE.Vector2(R * (0.35 + 0.65 * Math.pow(t, 1.6)), -t * R * 1.8)); }
+      const bell = new THREE.Mesh(new THREE.LatheGeometry(pts, 20), new THREE.MeshStandardMaterial({ color: "#c8964a", metalness: 0.55, roughness: 0.3, emissive: "#3a2408", emissiveIntensity: 0.4 }));
+      bell.position.set(x, 0.9, 0); g.add(bell);
+      const hp = new THREE.Group(); hp.position.set(x + R + 0.05, 0.62, 0.05); g.add(hp);
+      box(0.012, 0.22, 0.012, m.dark, 0, 0.11, 0, hp);
+      sphere(0.03, brass, 0, 0.23, 0, hp, 10);
+      hammers[kind] = { hp, hit: 0 };
+    }
+    // ручка завода сбоку
+    const crank = new THREE.Group(); crank.position.set(W / 2 + 0.02, 0.6, 0); g.add(crank);
+    const axle = cyl(0.015, 0.015, 0.08, brass, 0.04, 0, 0, crank, 8); axle.rotation.z = Math.PI / 2;
+    box(0.02, 0.16, 0.02, brass, 0.08, 0.07, 0, crank);
+    sphere(0.025, T.metal("#8a1e14", 0.4), 0.1, 0.15, 0, crank, 10);
+    blobShadow(W, D, g, 0.45);
+    let playing = false;
+    const play = () => {
+      if (playing) return true;
+      playing = true;
+      sfx.lever(G.worldPos(crank));
+      G.tween(0.8, (k) => { crank.rotation.x = -k * Math.PI * 2; });
+      def.sequence.forEach((kind, i) => {
+        setTimeout(() => {
+          sfx.bell(G.worldPos(g, [0, 0.9, 0]), kind);
+          hammers[kind].hit = 1;
+        }, 1000 + i * 750);
+      });
+      setTimeout(() => { playing = false; }, 1000 + def.sequence.length * 750 + 500);
+      return true;
+    };
+    G.every((dt) => {
+      for (const k in hammers) {
+        const h = hammers[k];
+        h.hit = Math.max(0, h.hit - dt * 4);
+        h.hp.rotation.z = h.hit > 0.5 ? (1 - h.hit) * 1.4 : h.hit * 1.4; // замах и удар
+      }
+    });
+    G.onTap(g, play, { owner: def.id });
+    G.addInspect(def.id, g, { pos: [0, 0.95, 1.05], target: [0, 0.8, 0] }, () => { G.say("chimeMsg", null, 3000); play(); });
+    return { group: g, w: W, d: D };
   },
 
   itemWeight(def, G) {

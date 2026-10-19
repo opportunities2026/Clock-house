@@ -20,7 +20,12 @@ export function saveSettings(s) { write(SETTINGS_KEY, s); }
 
 // Какие главы уже открыты
 const PROGRESS_KEY = "clockhouse.progress.v1";
-export function loadProgress() { return { unlocked: ["chapter1"], ...(read(PROGRESS_KEY) || {}) }; }
+export function loadProgress() { return { unlocked: ["chapter1"], completed: [], ...(read(PROGRESS_KEY) || {}) }; }
+export function completeChapter(id) {
+  const p = loadProgress();
+  if (!p.completed.includes(id)) p.completed.push(id);
+  write(PROGRESS_KEY, p);
+}
 export function unlockChapter(id) {
   const p = loadProgress();
   if (!p.unlocked.includes(id)) p.unlocked.push(id);
