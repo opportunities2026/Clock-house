@@ -809,7 +809,7 @@ export function crackTexture() {
   return cached("crack", () => {
     const S = 256, c = canvas(S, S), ctx = c.getContext("2d"), r = rng(13);
     ctx.clearRect(0, 0, S, S);
-    ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = 1.6;
+    ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 3; ctx.shadowColor = "rgba(0,0,0,0.9)"; ctx.shadowBlur = 3;
     const cx = S * 0.62, cy = S * 0.38;
     for (let k = 0; k < 9; k++) {
       let x = cx, y = cy, a = (k / 9) * Math.PI * 2 + r() * 0.4;

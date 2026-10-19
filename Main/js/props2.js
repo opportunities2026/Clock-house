@@ -448,12 +448,14 @@ Object.assign(BUILDERS, {
     const hourG = new THREE.Group(); hourG.position.set(0, y, 0.11); g.add(hourG);
     const handMat = T.metal("#2a1c10", 0.35);
     const hh = minuteHandMesh(0.25, handMat); hh.scale.set(2.2, 1, 1); hourG.add(hh);
-    const hourProxy = box(0.12, 0.28, 0.04, new THREE.MeshBasicMaterial({ visible: false }), 0, 0.12, 0.01, hourG);
+    // часовую стрелку берём ближе к центру, минутную — у края: так они не мешают друг другу
+    const hourProxy = box(0.13, 0.25, 0.04, new THREE.MeshBasicMaterial({ visible: false }), 0, 0.125, 0.01, hourG);
     const minG = new THREE.Group(); minG.position.set(0, y, 0.125); g.add(minG);
     const mh = minuteHandMesh(0.38, handMat); mh.scale.set(1.6, 1, 1); minG.add(mh);
-    const minProxy = box(0.1, 0.42, 0.04, new THREE.MeshBasicMaterial({ visible: false }), 0, 0.2, 0.01, minG);
+    const minProxy = box(0.12, 0.17, 0.04, new THREE.MeshBasicMaterial({ visible: false }), 0, 0.345, 0.01, minG);
 
     const st = { hour: def.hour || 9, minute: def.minute || 30, placed: G.is("placed:" + def.item) };
+    G.debug = { ...(G.debug || {}), clock: st };   // для отладки: game.G.debug.clock
     const solved = () => G.is(G.level.owl?.sleepFlag || "owl_asleep");
     if (solved()) { st.hour = (def.target || {}).hour || 12; st.minute = (def.target || {}).minute || 0; st.placed = true; }
     minG.visible = st.placed;
