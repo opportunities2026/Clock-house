@@ -65,6 +65,7 @@ Object.assign(BUILDERS, {
     const brass = T.metal("#c09a5c", 0.3);
     const glassMat = new THREE.MeshStandardMaterial({ color: "#d8e4ec", metalness: 1, roughness: 0.04 });
     const mirrors = new Map();
+    G.debug = { ...(G.debug || {}), mirrors };   // для отладки: game.G.debug.mirrors
     for (const md of def.mirrors) {
       const [cx, cz] = md.cell;
       const stand = new THREE.Group();
@@ -197,6 +198,8 @@ Object.assign(BUILDERS, {
           pans[1].plate.add(w);
           G.onTap(w, () => {
             if (G.is(def.flag)) return false;
+            // если в кармане выбрана гиря — кладём её, а не снимаем эту
+            if (def.items.includes(G.selected()) && G.has(G.selected())) return tapPan();
             G.unflag("placed:" + it);
             pans[1].plate.remove(w); meshes.delete(it);
             G.give(it, { quiet: true });

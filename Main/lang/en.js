@@ -103,5 +103,5 @@ export default {
   drawerLocked: "The drawer is locked. It will open when the scales balance.",
   hintWait: "(More detail in {s} s.)",
   weightRemoved: "You took the weight off the pan.",
-  tooHeavy: "Too heavy! The right pan sank. Tap a weight on the pan to take it off.",
+  tooHeavy: "Too heavy! The right pan sank. To take a weight off, deselect your pocket item and tap the weight on the pan.",
 };
