@@ -24,6 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # метка версии на всех файлах — чтобы планшет не показывал старую игру из кэша
+      - run: python3 .github/scripts/stamp.py Main "${GITHUB_SHA::8}"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: Main
