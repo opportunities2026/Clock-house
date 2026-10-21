@@ -342,7 +342,44 @@ const WALL_STYLES = {
   tower:    (ctx, r) => { stoneBlocks(ctx, r, [0.2, 0.17, 0.14], 0.3); beams(ctx, r); aging(ctx, r, 1.2); },
   stars:    (ctx, r) => { starPaper(ctx, r); wainscot(ctx, r, "#2a1a10", 0.9); crown(ctx, "#8a6a30"); aging(ctx, r, 1.2); },
   mech:     (ctx, r) => { bricks(ctx, r); ctx.fillStyle = "rgba(60,40,10,0.35)"; ctx.fillRect(0, 0, WALL_W, WALL_H); beams(ctx, r); aging(ctx, r, 1.6); },
+  // глава 5: оранжерея — внизу кирпич, выше стекло в железных рамах
+  garden:   (ctx, r) => { glassPanes(ctx, r); bricks(ctx, r, WALL_H - 300); ctx.fillStyle = "#2a2622"; ctx.fillRect(0, WALL_H - 312, WALL_W, 14); aging(ctx, r, 0.8); },
+  secret:   (ctx, r) => { stoneBlocks(ctx, r, [0.17, 0.15, 0.12], 0.6); aging(ctx, r, 1.6); },
 };
+
+// Стекло оранжереи: ночное небо, железные переплёты, плющ
+function glassPanes(ctx, r) {
+  const g = ctx.createLinearGradient(0, 0, 0, WALL_H);
+  g.addColorStop(0, "#0a1420"); g.addColorStop(0.7, "#14262a"); g.addColorStop(1, "#1a2c26");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, WALL_W, WALL_H);
+  for (let i = 0; i < 60; i++) { ctx.fillStyle = `rgba(220,235,255,${r() * 0.5})`; ctx.fillRect(r() * WALL_W, r() * WALL_H * 0.5, 2, 2); }
+  // отражения и запотевшее стекло
+  for (let i = 0; i < 8; i++) { ctx.fillStyle = `rgba(180,210,220,${0.03 + r() * 0.04})`; ctx.save(); ctx.translate(r() * WALL_W, r() * WALL_H); ctx.rotate(-0.6); ctx.fillRect(0, 0, 18 + r() * 30, 300); ctx.restore(); }
+  for (let i = 0; i < 400; i++) { ctx.fillStyle = `rgba(200,220,220,${r() * 0.08})`; ctx.beginPath(); ctx.arc(r() * WALL_W, r() * WALL_H, 1 + r() * 3, 0, 7); ctx.fill(); }
+  // силуэты листьев снаружи
+  for (let i = 0; i < 14; i++) {
+    ctx.fillStyle = `rgba(4,10,8,${0.5 + r() * 0.4})`;
+    ctx.save(); ctx.translate(r() * WALL_W, WALL_H * (0.35 + r() * 0.4)); ctx.rotate(r() * 6);
+    ctx.beginPath(); ctx.ellipse(0, 0, 18 + r() * 30, 6 + r() * 8, 0, 0, 7); ctx.fill(); ctx.restore();
+  }
+  // переплёт
+  ctx.fillStyle = "#1e2422";
+  for (const x of [0, WALL_W / 2 - 6, WALL_W - 12]) ctx.fillRect(x, 0, 12, WALL_H);
+  for (const y of [40, 300, 560]) ctx.fillRect(0, y, WALL_W, 10);
+  ctx.fillStyle = "rgba(150,170,160,0.25)";
+  for (const x of [2, WALL_W / 2 - 4, WALL_W - 10]) ctx.fillRect(x, 0, 2, WALL_H);
+  // плющ по раме
+  ctx.strokeStyle = "#1c3a20"; ctx.lineWidth = 3;
+  for (let k = 0; k < 2; k++) {
+    let x = r() * WALL_W, y = WALL_H - 300;
+    ctx.beginPath(); ctx.moveTo(x, y);
+    for (let i = 0; i < 30; i++) {
+      x += (r() - 0.5) * 30; y -= 12 + r() * 10; ctx.lineTo(x, y);
+      if (i % 2) { ctx.fillStyle = `rgb(${30 + r() * 30},${70 + r() * 50},${30 + r() * 20})`; ctx.save(); ctx.translate(x, y); ctx.rotate(r() * 6); ctx.beginPath(); ctx.ellipse(8, 0, 10, 6, 0, 0, 7); ctx.fill(); ctx.restore(); }
+    }
+    ctx.stroke();
+  }
+}
 
 // Деревянные балки на стене (фахверк)
 function beams(ctx, r) {
@@ -389,7 +426,15 @@ const FLOOR_STYLES = {
   tower: () => [planks("#4a3420", 22, 1.2), 2],
   stars: () => [herringbone("#4a2e1a", 23), 2],
   mech: () => [planks("#5a4630", 24, 1.4), 2],
+  garden: () => [mossy(stoneFloor(25)), 1.5],
+  secret: () => [darken(stoneFloor(26), 0.7), 1.5],
 };
+
+function mossy(c) {
+  const ctx = c.getContext("2d"), r = rng(55);
+  for (let i = 0; i < 90; i++) { ctx.fillStyle = `rgba(${40 + r() * 30},${70 + r() * 40},${30 + r() * 20},${0.1 + r() * 0.2})`; ctx.beginPath(); ctx.ellipse(r() * c.width, r() * c.height, 10 + r() * 50, 6 + r() * 30, r() * 3, 0, 7); ctx.fill(); }
+  return c;
+}
 
 function darken(c, k) {
   const ctx = c.getContext("2d");
@@ -397,7 +442,7 @@ function darken(c, k) {
   return c;
 }
 
-const STONE_THEMES = ["stairs", "cellar", "stairsUp"];
+const STONE_THEMES = ["stairs", "cellar", "stairsUp", "garden", "secret"];
 
 const cache = new Map();
 function cached(key, fn) {
@@ -421,7 +466,7 @@ export function roomMaterials(theme) {
       roughness: theme === "cellar" ? 0.6 : STONE_THEMES.includes(theme) ? 0.9 : 0.55, metalness: 0,
     });
     floor.userData.metersPerRepeat = 3 / (rep / 2);
-    const ceilColor = { tower: "#2a2018", stars: "#141c34", mech: "#2a2018", workshop: "#8a7c6a", cellar: "#2e2a26", storage: "#3a332c", nest: "#3a3028", stairs: "#2e2a26", stairsUp: "#3a352e" }[theme] || "#c9bfa9";
+    const ceilColor = { garden: "#0c1618", secret: "#221e1a", tower: "#2a2018", stars: "#141c34", mech: "#2a2018", workshop: "#8a7c6a", cellar: "#2e2a26", storage: "#3a332c", nest: "#3a3028", stairs: "#2e2a26", stairsUp: "#3a352e" }[theme] || "#c9bfa9";
     const cc = plasterTex(ceilColor, 99 + theme.length);
     const ceil = new THREE.MeshStandardMaterial({ map: tex(cc), roughness: 1 });
     return { wall, floor, ceil };
@@ -670,7 +715,10 @@ export function chalkboardTexture(symbols) {
 
 export function drawSymbol(ctx, s, x, y, R, chalk = false) {
   ctx.save(); ctx.translate(x, y);
-  if (s === "sun") {
+  if (/^\d+$/.test(s)) { // число вместо знака
+    ctx.font = `bold ${Math.round(R * (s.length > 1 ? 1.3 : 1.7))}px Georgia, serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    chalk ? ctx.strokeText(s, 0, 0) : ctx.fillText(s, 0, R * 0.08);
+  } else if (s === "sun") {
     ctx.beginPath(); ctx.arc(0, 0, R * 0.45, 0, 7); chalk ? ctx.stroke() : ctx.fill();
     for (let k = 0; k < 12; k++) { const a = (k / 12) * Math.PI * 2; ctx.beginPath(); ctx.moveTo(Math.cos(a) * R * 0.6, Math.sin(a) * R * 0.6); ctx.lineTo(Math.cos(a) * R * 0.95, Math.sin(a) * R * 0.95); ctx.stroke(); }
   } else if (s === "moon") {

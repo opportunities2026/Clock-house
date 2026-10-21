@@ -13,6 +13,7 @@ export function buildDoor(def, G) {
   const [cx, cz] = def.cell;
   g.position.set((cx + 0.5) * CELL, 0, (cz + 0.5) * CELL);
   g.rotation.y = SIDE_ROT[def.side] ?? 0;
+  if (def.secret) return secretDoor(def, G, g);
 
   const wood = T.woodMaterial("#4a2a16", { seed: 41 });
   const trim = T.woodMaterial("#2e1a0c", { seed: 42 });
@@ -148,6 +149,69 @@ function keyLock(door, lock, lg, G, brass) {
 }
 
 // невидимая прямоугольная зона нажатия
+// Тайная дверь: выглядит как обычная стена комнаты. Один кирпич шатается —
+// за ним скважина. Ключ поворачивается, и стена уходит в пол.
+function secretDoor(def, G, g) {
+  const [cx, cz] = def.cell;
+  const lock = def.lock || {};
+  const wallMats = T.roomMaterials(def.theme || "garden");
+  const slab = new THREE.Group(); g.add(slab);
+  box(CELL, HEIGHT, 0.12, wallMats.wall, 0, HEIGHT / 2, CELL / 2 - 0.06, slab);
+  // со стороны тайной комнаты — камень
+  box(CELL, HEIGHT, 0.02, T.roomMaterials("secret").wall, 0, HEIGHT / 2, CELL / 2 - 0.13, slab);
+  const flag = "open:" + def.id;
+  const door = { def, g, isOpen: G.is(flag) };
+  G.setBlocked(cx, cz, !door.isOpen);
+  if (door.isOpen) slab.visible = false;
+  // шатающийся кирпич
+  const bx = lock.x ?? 0.3, by = lock.y ?? 0.62, bz = CELL / 2 + 0.012;
+  const brickMat = new THREE.MeshStandardMaterial({ color: "#6a3424", roughness: 0.95 });
+  const spot = new THREE.Group(); slab.add(spot); // только кирпич и скважина — их можно рассмотреть
+  const brickG = new THREE.Group(); brickG.position.set(bx, by, bz); spot.add(brickG);
+  const brick = box(0.23, 0.068, 0.1, brickMat, 0, 0, -0.04, brickG);
+  // скважина за кирпичом
+  const hole = box(0.23, 0.068, 0.01, T.plain("#0a0806", 1), bx, by, CELL / 2 - 0.0, spot);
+  hole.visible = false;
+  const keyhole = new THREE.Group(); keyhole.position.set(bx, by, CELL / 2 - 0.02); spot.add(keyhole); keyhole.visible = false;
+  cyl(0.022, 0.022, 0.012, T.metal("#c09a5c", 0.3), 0, 0, 0, keyhole, 16).rotation.x = Math.PI / 2;
+  box(0.008, 0.024, 0.014, T.plain("#050403", 1), 0, -0.004, 0.002, keyhole);
+  const pulled = () => G.is("pulled:" + def.id);
+  const showPulled = () => { brickG.visible = false; hole.visible = true; keyhole.visible = true; };
+  if (pulled()) showPulled();
+  hitProxyBox(brickG, 0.3, 0.12, 0.08).position.z = -0.02;
+  const open = () => {
+    door.isOpen = true; G.flag(flag); G.setBlocked(cx, cz, false);
+    G.exitInspect(500);
+    setTimeout(() => {
+      sfx.drain?.(G.worldPos(g, [0, 1, CELL / 2]), 3);
+      sfx.gearsTurning(G.worldPos(g, [0, 1, CELL / 2]), 3);
+      G.tween(3.2, (k) => { slab.position.y = -HEIGHT * k * k; slab.position.x = Math.sin(k * 60) * 0.01 * (1 - k); }, () => { slab.visible = false; });
+      G.say("secretOpened", null, 2600);
+    }, 600);
+  };
+  const tap = () => {
+    if (door.isOpen) return false;
+    if (!pulled()) {
+      G.flag("pulled:" + def.id);
+      sfx.metal?.(G.worldPos(brickG));
+      G.tween(0.5, (k) => { brickG.position.z = bz + 0.12 * k; brickG.position.y = by - 0.4 * Math.max(0, k - 0.5); }, showPulled);
+      G.say("brickPulled", null, 2800);
+      return true;
+    }
+    if (!G.has(lock.item)) { sfx.locked(G.worldPos(keyhole)); G.say("keyholeHidden", null, 2600); return true; }
+    G.take(lock.item);
+    const k = keyMesh(); k.rotation.y = Math.PI / 2; k.position.set(bx, by, CELL / 2 + 0.05); slab.add(k);
+    G.tween(0.5, (t) => { k.position.z = CELL / 2 + 0.05 - 0.04 * t; }, () => G.tween(0.5, (t) => { k.rotation.z = (Math.PI / 2) * t; }, () => { sfx.unlock(G.worldPos(keyhole)); open(); }));
+    return true;
+  };
+  G.onTap(brickG, tap, { owner: def.id });
+  G.onTap(keyhole, tap, { owner: def.id });
+  hitProxyBox(keyhole, 0.12, 0.1, 0.06).position.z = -0.01;
+  G.addInspect(def.id, spot, { pos: [bx, by + 0.15, CELL / 2 + 0.6], target: [bx, by, CELL / 2] });
+
+  return door;
+}
+
 function hitProxyBox(obj, w, h, d) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ visible: false }));
   m.position.z = d / 2;

@@ -29,7 +29,7 @@ const CABINET_CODE = "6318";
 export const level = {
   id: "chapter4",
   title: { ru: "Глава 4 · Обсерватория", en: "Chapter 4 · The Observatory" },
-  next: null,
+  next: "chapter5",
 
   // o — обсерватория, a — кабинет, y — мышиные ходы, x — мастерская, u — лестница на крышу
   map: [
@@ -130,7 +130,7 @@ export const level = {
              { ru: "Подойди к телескопу и осмотри его трубу: сбоку есть лючок. Внутри — ключик.", en: "Go to the telescope and look closely at its tube: there's a little hatch on the side with a key inside." }] },
     { done: "letter_done",
       hint: [{ ru: "Письмо порвано на 4 куска. Ищи их в обеих комнатах, а потом сложи на столе с зелёным сукном.", en: "The letter is torn into 4 scraps. Look in both rooms, then put them together on the table with green cloth." },
-             { ru: "Куски: в ящике стола, в стеклянном шкафу (ключ от него в ящике), в книге с пером на полке и под столом. На сукне нажми кусок, потом другой — поменяются; нажми дважды — повернётся.", en: "Scraps: in the desk drawer, in the glass cabinet (its key is in the drawer), in the book with a quill on the shelf and under the desk. On the cloth tap one scrap then another to swap; tap twice to rotate." }] },
+             { ru: "Куски: в ящике стола, в стеклянном шкафу (ключ от него в ящике), в книге с пером на полке и в углу кабинета. На сукне нажми кусок, потом другой — поменяются; нажми дважды — повернётся.", en: "Scraps: in the desk drawer, in the glass cabinet (its key is in the drawer), in the book with a quill on the shelf and in a corner of the study. On the cloth tap one scrap then another to swap; tap twice to rotate." }] },
     { done: "open:door10",
       hint: [{ ru: "Реши примеры из письма: каждый ответ — одна цифра кода двери №10.", en: "Solve the sums in the letter: each answer is one digit of door 10's code." },
              { ru: "Сначала умножение и деление, потом сложение и вычитание; скобки — первыми. Ответы: 2, 7, 4, 5.", en: "Multiplication and division first, then addition and subtraction; brackets come before everything. The answers are 2, 7, 4, 5." }] },
@@ -167,7 +167,7 @@ export const level = {
 
     // ---------- КАБИНЕТ ----------
     { type: "desk", x: 10.5, z: 1.5, rot: 0 },
-    { type: "itemOn", item: "piece4", x: 10.45, z: 1.62 },
+    { type: "itemOn", item: "piece4", x: 12.55, z: 5.6 },
     { type: "cabinet", id: "deskdrawer", x: 12.84, z: 3.6, rot: -90, w: 0.7, h: 0.5, d: 0.42, y0: 0.45,
       lock: { type: "key", item: "desk_key" }, contents: ["piece2", "glass_key"] },
     { type: "bookshelf", x: 9.0, z: 5.85, rot: 180 },
@@ -226,8 +226,8 @@ export const level = {
   ending: {
     title: { ru: "Глава 4 пройдена!", en: "Chapter 4 complete!" },
     text: {
-      ru: "Дверь №11 захлопнулась, и за ней стих писк сотен железных лапок.\n\nЛестница ведёт на крышу, в старую оранжерею. Оттуда тянет тёплым влажным воздухом и слышно, как журчат механические фонтаны.\n\nГде-то наверху хлопают огромные крылья.\n\nПродолжение следует: Глава 5 — «Механическая оранжерея».",
-      en: "Door 11 slammed shut, and behind it the squeaking of hundreds of iron paws fell silent.\n\nThe stairs lead up to the roof, to the old greenhouse. Warm, damp air drifts down, and you can hear mechanical fountains gurgling.\n\nSomewhere above, huge wings are flapping.\n\nTo be continued: Chapter 5 — “The Mechanical Greenhouse”.",
+      ru: "Дверь №11 захлопнулась, и за ней стих писк сотен железных лапок.\n\nЛестница ведёт на крышу, в старую оранжерею. Оттуда тянет тёплым влажным воздухом и слышно, как журчат механические фонтаны.\n\nГде-то наверху хлопают огромные крылья.\n\nДальше: Глава 5 — «Механическая оранжерея».",
+      en: "Door 11 slammed shut, and behind it the squeaking of hundreds of iron paws fell silent.\n\nThe stairs lead up to the roof, to the old greenhouse. Warm, damp air drifts down, and you can hear mechanical fountains gurgling.\n\nSomewhere above, huge wings are flapping.\n\nNext: Chapter 5 — “The Mechanical Greenhouse”.",
     },
   },
 };

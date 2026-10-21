@@ -475,6 +475,26 @@ sfx.record = function (pos, sec = 5) {
   }
 };
 
+// Карканье огромной механической вороны: хриплое, с лязгом
+sfx.crowCaw = function (pos, loud = 1) {
+  if (!ctx) return;
+  const d = out(pos, 0.9), t = ctx.currentTime;
+  const n = 2 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < n; i++) {
+    const tt = t + i * 0.42, f = 330 + Math.random() * 40;
+    for (const [mul, fq, g] of [[1, 900, 0.5], [2.02, 1700, 0.25]]) {
+      const o = ctx.createOscillator(), gg = ctx.createGain(), bp = filt("bandpass", fq, 2.5);
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(f * mul * 0.8, tt); o.frequency.linearRampToValueAtTime(f * mul, tt + 0.06); o.frequency.exponentialRampToValueAtTime(f * mul * 0.55, tt + 0.32);
+      const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 55; lg.gain.value = 40 * mul; lfo.connect(lg); lg.connect(o.frequency);
+      env(gg, tt, 0.02, g * loud, 0.32);
+      o.connect(bp); bp.connect(gg); gg.connect(d); o.start(tt); lfo.start(tt); o.stop(tt + 0.4); lfo.stop(tt + 0.4);
+    }
+    burst({ t: tt, type: "bandpass", freq: 2500, q: 1, d: 0.25, gain: 0.25 * loud, dest: d });
+    tone({ t: tt, type: "square", freq: 1800 + Math.random() * 600, d: 0.05, gain: 0.04 * loud, dest: d });
+  }
+};
+
 // Постоянный звук, который можно двигать (жужжание механизма совы)
 export function movingLoop() {
   if (!ctx) return null;

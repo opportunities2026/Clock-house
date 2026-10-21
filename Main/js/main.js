@@ -8,8 +8,11 @@ import { BUILDERS } from "./props.js";
 import { lanternMesh } from "./props2.js";
 import "./props3.js";
 import "./props4.js";
+import "./props5.js";
+import "./props6.js";
 import { Owl } from "./owl.js";
 import { MiceSwarm } from "./mice.js";
+import { Crow } from "./crow.js";
 import { buildDoor } from "./doors.js";
 import { Controls } from "./controls.js";
 import * as T from "./textures.js";
@@ -328,6 +331,13 @@ function buildLevel() {
     mice.msgSpotted = "miceSpotted"; mice.msgCaught = "caughtMice";
     chasers.push(mice);
   }
+  if (level.crow) {
+    const crow = new Crow({ cfg: level.crow, world, G, scene, getPlayer, onSpotted: () => onSpotted(crow), onLost, onCaught: () => onCaught(crow) });
+    crow.msgSpotted = "crowSpotted"; crow.msgCaught = "caughtCrow";
+    chasers.push(crow);
+  }
+  // глава может закончиться не на лестнице, а когда случится что-то важное
+  if (level.endFlag) G.onFlag(level.endFlag, () => setTimeout(() => { if (!ended) endChapter(); }, 3500));
 
   scene.updateMatrixWorld(true);
   for (const p of pendingPos) { p.obj.updateWorldMatrix(true, false); p.v.applyMatrix4(p.obj.matrixWorld); }

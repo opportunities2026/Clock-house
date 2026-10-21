@@ -13,6 +13,8 @@ export const ICONS = {
   piece: `<svg viewBox="0 0 64 64"><path d="M10 16l30-6 14 12-4 26-34 6-8-20z" fill="#e9dcbc" stroke="#8a7350" stroke-width="2"/><path d="M18 26h22M18 33h26M18 40h16" stroke="#5a4a80" stroke-width="2.5"/></svg>`,
   record: `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="#111"/><circle cx="32" cy="32" r="19" fill="none" stroke="#333" stroke-width="1.5"/><circle cx="32" cy="32" r="13" fill="none" stroke="#333" stroke-width="1.5"/><circle cx="32" cy="32" r="8" fill="#8a1e14"/><circle cx="32" cy="32" r="2" fill="#000"/></svg>`,
   fuse: `<svg viewBox="0 0 64 64"><rect x="16" y="24" width="32" height="16" rx="4" fill="#cfe0ea" opacity="0.8" stroke="#8aa" stroke-width="2"/><path d="M18 32h28" stroke="#888" stroke-width="2"/><rect x="8" y="22" width="10" height="20" rx="2" fill="#c9a25a"/><rect x="46" y="22" width="10" height="20" rx="2" fill="#c9a25a"/></svg>`,
+  handle: `<svg viewBox="0 0 64 64"><rect x="8" y="29" width="34" height="6" rx="2" fill="#4a4a4e"/><rect x="40" y="24" width="18" height="16" rx="6" fill="#7a3a1c"/><circle cx="10" cy="32" r="7" fill="#c9a25a"/></svg>`,
+  watch: `<svg viewBox="0 0 64 64"><circle cx="32" cy="36" r="20" fill="#e0b040" stroke="#8a6326" stroke-width="3"/><circle cx="32" cy="36" r="15" fill="#f4ecd8"/><path d="M32 36V26M32 36l7 4" stroke="#2a1c0a" stroke-width="2.5"/><circle cx="32" cy="12" r="4" fill="none" stroke="#e0b040" stroke-width="3"/></svg>`,
   note: `<svg viewBox="0 0 64 64"><path d="M14 8h28l10 10v38H14z" fill="#e9dcbc" stroke="#8a7350" stroke-width="2"/><path d="M20 26h24M20 33h24M20 40h18" stroke="#5a4a80" stroke-width="2.5"/></svg>`,
 };
 
