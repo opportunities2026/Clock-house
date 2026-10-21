@@ -6,7 +6,7 @@ import { sfx } from "./audio.js";
 import { tr } from "./i18n.js";
 import { CELL } from "./world.js";
 import { BUILDERS, box, rbox, cyl, sphere, plane, mats, blobShadow, hitProxy, pickable } from "./props.js";
-import { itemMesh } from "./props2.js";
+import { itemMesh, ITEM_MESHES } from "./props2.js";
 import { LOCKS, hitProxyBox } from "./doors.js";
 
 const brass = () => T.metal("#c09a5c", 0.3);
@@ -34,6 +34,30 @@ function letterCanvas(title, text, w = 1024, h = 768) {
   }
   return c;
 }
+
+// Как предметы глав 4–6 выглядят, когда лежат в мире
+Object.assign(ITEM_MESHES, {
+  piece() {
+    const g = new THREE.Group();
+    const sh = new THREE.Shape(); sh.moveTo(-0.07, -0.05); sh.lineTo(0.06, -0.06); sh.lineTo(0.075, 0.02); sh.lineTo(0.05, 0.055); sh.lineTo(-0.06, 0.05); sh.lineTo(-0.075, -0.01); sh.closePath();
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshStandardMaterial({ map: T.paperTexture(4), roughness: 0.9, side: THREE.DoubleSide }));
+    m.rotation.x = -Math.PI / 2; m.position.y = 0.004; g.add(m);
+    return g;
+  },
+  record() {
+    const g = new THREE.Group();
+    cyl(0.12, 0.12, 0.006, T.plain("#0a0a0a", 0.3, { metalness: 0.2 }), 0, 0.004, 0, g, 28);
+    const l = new THREE.Mesh(new THREE.CircleGeometry(0.04, 16), T.plain("#8a1e14", 0.6)); l.rotation.x = -Math.PI / 2; l.position.y = 0.008; g.add(l);
+    return g;
+  },
+  fuse() {
+    const g = new THREE.Group();
+    const glass = cyl(0.018, 0.018, 0.1, new THREE.MeshStandardMaterial({ color: "#d8e0e8", transparent: true, opacity: 0.7, roughness: 0.1 }), 0, 0.02, 0, g, 12);
+    glass.rotation.z = Math.PI / 2;
+    for (const s of [-1, 1]) { const c = cyl(0.02, 0.02, 0.018, brass(), s * 0.055, 0.02, 0, g, 12); c.rotation.z = Math.PI / 2; }
+    return g;
+  },
+});
 
 Object.assign(BUILDERS, {
 
@@ -85,7 +109,7 @@ Object.assign(BUILDERS, {
   // Звёздная карта на стене. Если перевернуть — на обороте схема.
   starMap(def, G) {
     const g = new THREE.Group(), m = mats();
-    const W = 1.0, Hh = 0.7, y = def.y || 1.6;
+    const W = 1.0, Hh = 0.7, y = def.h || 1.6;
     const flip = new THREE.Group(); flip.position.set(0, y, 0.05); g.add(flip);
     rbox(W + 0.08, Hh + 0.08, 0.03, 0.01, m.dark, 0, 0, 0, flip);
     const front = plane(W, Hh, new THREE.MeshStandardMaterial({ map: T.starChartTexture(def.symbols || []), roughness: 0.8 }), 0, 0, 0.017, flip);
@@ -220,7 +244,7 @@ Object.assign(BUILDERS, {
   // Книга на полке: если потянуть, из неё что-то выпадет
   secretBook(def, G) {
     const g = new THREE.Group();
-    const pivot = new THREE.Group(); pivot.position.y = def.y || 1.2; g.add(pivot);
+    const pivot = new THREE.Group(); pivot.position.y = def.h || 1.2; g.add(pivot);
     const bk = box(0.05, 0.3, 0.24, new THREE.MeshStandardMaterial({ map: T.bookSpineTexture(), color: def.color || "#3a1a50", roughness: 0.7 }), 0, 0.15, 0, pivot);
     const quill = new THREE.Mesh(new THREE.ConeGeometry(0.012, 0.16, 4), T.metal("#16161c", 0.4));
     quill.position.set(0, 0.34, 0.06); quill.rotation.z = 0.3; pivot.add(quill);
@@ -235,6 +259,27 @@ Object.assign(BUILDERS, {
       return true;
     });
     return { group: g, noCollide: true };
+  },
+
+  // Масляная лампа на высокой подставке. Бывает потухшей (lit: false).
+  oilLamp(def, G) {
+    const m = mats(), g = new THREE.Group(), b = brass();
+    const lit = def.lit !== false;
+    cyl(0.16, 0.2, 0.05, m.dark, 0, 0.025, 0, g, 18);
+    cyl(0.02, 0.025, 1.25, b, 0, 0.65, 0, g, 8);
+    cyl(0.07, 0.09, 0.1, b, 0, 1.3, 0, g, 16);
+    const glass = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 12), new THREE.MeshStandardMaterial({
+      color: lit ? "#ffe0a0" : "#3a3a34", emissive: lit ? "#ffb040" : "#000", emissiveIntensity: lit ? 1.6 : 0, transparent: true, opacity: lit ? 0.9 : 0.55, roughness: 0.1 }));
+    glass.scale.y = 1.3; glass.position.y = 1.47; g.add(glass);
+    cyl(0.04, 0.05, 0.06, b, 0, 1.62, 0, g, 12);
+    if (lit) {
+      const l = G.light("#ffb060", def.power || 3, 7, [0, 1.5, 0], g);
+      G.every((dt, time) => { if (l) l.intensity = (def.power || 3) * (0.92 + Math.sin(time * 13 + def.x) * 0.04 + Math.sin(time * 5.3) * 0.04); });
+    } else {
+      G.onTap(g, () => { G.say("lampOut", null, 2000); return true; });
+    }
+    blobShadow(0.4, 0.4, g);
+    return { group: g, w: 0.35, d: 0.35 };
   },
 
   // Мышиная нора у пола. Из неё выбегают мыши.
@@ -282,6 +327,7 @@ Object.assign(BUILDERS, {
     };
     const slots = new Array(N).fill(null); // в каждом слоте — кусок {piece, rot, grp}
     const tiles = [];
+    G.debug = { ...(G.debug || {}), letter: { slots, tiles } };
     const solved = () => G.is(def.flag);
     const place = (pieceIdx, slot, rot) => {
       const grp = new THREE.Group();

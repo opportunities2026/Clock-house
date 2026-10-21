@@ -7,7 +7,9 @@ import { buildWorld, CELL } from "./world.js";
 import { BUILDERS } from "./props.js";
 import { lanternMesh } from "./props2.js";
 import "./props3.js";
+import "./props4.js";
 import { Owl } from "./owl.js";
+import { MiceSwarm } from "./mice.js";
 import { buildDoor } from "./doors.js";
 import { Controls } from "./controls.js";
 import * as T from "./textures.js";
@@ -229,10 +231,10 @@ function takeLantern() {
 
 // ---------------------------------------------------------------- Страж: погоня и «поймал»
 let chased = false, chaseBreath = 0;
-function onSpotted() {
+function onSpotted(who) {
   chased = true; chaseBreath = 0;
   document.body.classList.add("chased");
-  G.say("owlSpotted", null, 2600);
+  G.say(who?.msgSpotted || "owlSpotted", null, 2600);
   sfx.heartbeat(4, 0.45);
 }
 function onLost() {
@@ -278,7 +280,7 @@ async function onCaught(who = owl) {
   await new Promise((r) => setTimeout(r, 600));
   await UI.fade(false, 700);
   uiBusy = false;
-  G.say("caught", null, 4000);
+  G.say(who?.msgCaught || "caught", null, 4000);
   persist();
 }
 
@@ -317,8 +319,14 @@ function buildLevel() {
 
   const getPlayer = () => ({ x: player.x, z: player.z, hidden: !!inspect?.hide, running: player.running });
   if (level.owl) {
-    owl = new Owl({ cfg: level.owl, world, G, scene, getPlayer, onSpotted, onLost, onCaught: () => onCaught(owl) });
+    owl = new Owl({ cfg: level.owl, world, G, scene, getPlayer, onSpotted: () => onSpotted(owl), onLost, onCaught: () => onCaught(owl) });
     chasers.push(owl);
+  }
+  if (level.mice) {
+    const holes = level.objects.filter((o) => o.type === "mouseHole").map((o) => [o.x, o.z, o.rot || 0]);
+    const mice = new MiceSwarm({ cfg: { holes, ...level.mice }, world, G, scene, getPlayer, onSpotted: () => onSpotted(mice), onLost, onCaught: () => onCaught(mice) });
+    mice.msgSpotted = "miceSpotted"; mice.msgCaught = "caughtMice";
+    chasers.push(mice);
   }
 
   scene.updateMatrixWorld(true);
@@ -838,4 +846,4 @@ if (hashPlay) {
 }
 
 // Для отладки и для Кирилла: в консоли браузера можно писать game.state и т.п.
-window.game = { state, player, G, scene, camera, level, get owl() { return owl; }, enterInspect, leaveInspect, handleTap, inspectables, pick, get inspect() { return inspect; }, get started() { return started; }, get debug() { return { paused, uiBusy, camAnim: !!camAnim, ended }; } };
+window.game = { state, player, G, scene, camera, level, chasers, get owl() { return owl; }, enterInspect, leaveInspect, handleTap, inspectables, pick, get inspect() { return inspect; }, get started() { return started; }, get debug() { return { paused, uiBusy, camAnim: !!camAnim, ended }; } };

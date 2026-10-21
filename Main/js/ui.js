@@ -10,6 +10,9 @@ export const ICONS = {
   valve: `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="none" stroke="#b02a1e" stroke-width="6"/><path d="M32 10v44M10 32h44M17 17l30 30M47 17L17 47" stroke="#b02a1e" stroke-width="4"/><circle cx="32" cy="32" r="7" fill="#7a1a12"/></svg>`,
   hand: `<svg viewBox="0 0 64 64"><path d="M30 58h4l1-40h6L32 4 23 18h6z" fill="#2a2018" stroke="#c9a25a" stroke-width="1.5"/><circle cx="32" cy="32" r="4" fill="none" stroke="#c9a25a" stroke-width="2"/></svg>`,
   weight: `<svg viewBox="0 0 64 64"><rect x="26" y="8" width="12" height="10" rx="3" fill="none" stroke="#c9a25a" stroke-width="3"/><path d="M16 20h32l6 34H10z" fill="#55504a" stroke="#2a2622" stroke-width="2"/></svg>`,
+  piece: `<svg viewBox="0 0 64 64"><path d="M10 16l30-6 14 12-4 26-34 6-8-20z" fill="#e9dcbc" stroke="#8a7350" stroke-width="2"/><path d="M18 26h22M18 33h26M18 40h16" stroke="#5a4a80" stroke-width="2.5"/></svg>`,
+  record: `<svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="#111"/><circle cx="32" cy="32" r="19" fill="none" stroke="#333" stroke-width="1.5"/><circle cx="32" cy="32" r="13" fill="none" stroke="#333" stroke-width="1.5"/><circle cx="32" cy="32" r="8" fill="#8a1e14"/><circle cx="32" cy="32" r="2" fill="#000"/></svg>`,
+  fuse: `<svg viewBox="0 0 64 64"><rect x="16" y="24" width="32" height="16" rx="4" fill="#cfe0ea" opacity="0.8" stroke="#8aa" stroke-width="2"/><path d="M18 32h28" stroke="#888" stroke-width="2"/><rect x="8" y="22" width="10" height="20" rx="2" fill="#c9a25a"/><rect x="46" y="22" width="10" height="20" rx="2" fill="#c9a25a"/></svg>`,
   note: `<svg viewBox="0 0 64 64"><path d="M14 8h28l10 10v38H14z" fill="#e9dcbc" stroke="#8a7350" stroke-width="2"/><path d="M20 26h24M20 33h24M20 40h18" stroke="#5a4a80" stroke-width="2.5"/></svg>`,
 };
 

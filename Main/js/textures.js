@@ -862,3 +862,57 @@ export function windowTexture() {
     return tex(c);
   });
 }
+
+const WIRE_HEX = { red: "#c8302a", blue: "#2a5ad0", yellow: "#e8b820", green: "#2aa048", white: "#e8e8e0", black: "#1a1a1a", orange: "#e87020", purple: "#8a3ac0" };
+
+// Звёздная карта: тёмно-синее небо, созвездия и знаки по краю
+export function starChartTexture(symbols) {
+  const W = 1024, H = 716, c = canvas(W, H), ctx = c.getContext("2d"), r = rng(77);
+  const g = ctx.createRadialGradient(W / 2, H / 2, 50, W / 2, H / 2, W * 0.7);
+  g.addColorStop(0, "#1c2a50"); g.addColorStop(1, "#0a1024");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = "rgba(200,180,120,0.35)"; ctx.lineWidth = 2;
+  for (const rr of [150, 260, 340]) { ctx.beginPath(); ctx.arc(W / 2, H / 2, rr, 0, 7); ctx.stroke(); }
+  for (let k = 0; k < 12; k++) { const a = (k / 12) * Math.PI * 2; ctx.beginPath(); ctx.moveTo(W / 2, H / 2); ctx.lineTo(W / 2 + Math.cos(a) * 340, H / 2 + Math.sin(a) * 340); ctx.stroke(); }
+  for (let i = 0; i < 500; i++) { ctx.fillStyle = `rgba(255,250,230,${0.3 + r() * 0.7})`; const s = r() < 0.92 ? 2 : 4; ctx.fillRect(r() * W, r() * H, s, s); }
+  ctx.strokeStyle = "rgba(240,220,160,0.7)"; ctx.lineWidth = 2;
+  for (let k = 0; k < 7; k++) {
+    let x = 150 + r() * (W - 300), y = 120 + r() * (H - 240);
+    ctx.beginPath(); ctx.moveTo(x, y);
+    for (let i = 0; i < 4; i++) { x += (r() - 0.5) * 140; y += (r() - 0.5) * 140; ctx.lineTo(x, y); ctx.fillStyle = "#fff6d0"; ctx.fillRect(x - 3, y - 3, 6, 6); }
+    ctx.stroke();
+  }
+  ctx.fillStyle = "#e8c87a"; ctx.strokeStyle = "#e8c87a"; ctx.lineWidth = 6; ctx.lineCap = "round";
+  const n = symbols.length;
+  symbols.forEach((s, i) => { const a = -Math.PI / 2 + (i / n) * Math.PI * 2; drawSymbol(ctx, s, W / 2 + Math.cos(a) * 300, H / 2 + Math.sin(a) * 300 * 0.9, 34); });
+  ctx.strokeStyle = "#8a6a30"; ctx.lineWidth = 14; ctx.strokeRect(7, 7, W - 14, H - 14);
+  return tex(c);
+}
+
+// Оборот карты: дедушкина схема проводов (чернилами, с кляксами)
+export function wiringTexture(colors, symbols, answer) {
+  const W = 1024, H = 716, c = canvas(W, H), ctx = c.getContext("2d"), r = rng(41);
+  const g = ctx.createLinearGradient(0, 0, W, H);
+  g.addColorStop(0, "#e6d6b0"); g.addColorStop(1, "#c8b088");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  for (let i = 0; i < 3000; i++) { ctx.fillStyle = `rgba(90,60,20,${r() * 0.06})`; ctx.fillRect(r() * W, r() * H, 3, 3); }
+  const n = colors.length, top = 120, sp = (H - 200) / Math.max(1, n - 1);
+  // правые знаки на схеме нарочно идут в другом порядке, чем на щитке
+  const order = symbols.slice().sort((a, b) => (a < b ? -1 : 1));
+  const ly = (i) => top + i * sp;
+  ctx.lineCap = "round";
+  colors.forEach((col, i) => {
+    const j = order.indexOf(answer[col]);
+    ctx.strokeStyle = WIRE_HEX[col] || col; ctx.lineWidth = 9;
+    ctx.beginPath(); ctx.moveTo(230, ly(i));
+    ctx.bezierCurveTo(480, ly(i) + (r() - 0.5) * 120, 540, ly(j) + (r() - 0.5) * 120, 790, ly(j)); ctx.stroke();
+    ctx.fillStyle = WIRE_HEX[col] || col; ctx.beginPath(); ctx.arc(200, ly(i), 26, 0, 7); ctx.fill();
+    ctx.strokeStyle = "#2a1a0a"; ctx.lineWidth = 3; ctx.stroke();
+  });
+  ctx.fillStyle = "#2a1a0a"; ctx.strokeStyle = "#2a1a0a"; ctx.lineWidth = 6;
+  order.forEach((s, j) => { ctx.beginPath(); ctx.arc(830, ly(j), 34, 0, 7); ctx.stroke(); drawSymbol(ctx, s, 830, ly(j), 26); });
+  ctx.font = "italic 38px Georgia, serif"; ctx.textAlign = "center";
+  ctx.fillText("щиток / panel", W / 2, 64);
+  for (let i = 0; i < 4; i++) { ctx.fillStyle = "rgba(30,20,10,0.5)"; ctx.beginPath(); ctx.ellipse(r() * W, r() * H, 8 + r() * 14, 6 + r() * 10, r() * 3, 0, 7); ctx.fill(); }
+  return tex(c);
+}

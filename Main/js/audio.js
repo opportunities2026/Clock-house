@@ -457,6 +457,24 @@ sfx.scream = function (pos) {
   tone({ t, freq: 60, to: 30, d: 0.6, gain: 0.7, dest: d });
 };
 
+// Пластинка: треск иглы и приглушённое «бормотание» старой записи
+sfx.record = function (pos, sec = 5) {
+  if (!ctx) return;
+  const d = out(pos, 0.6), t = ctx.currentTime;
+  const s = noiseSrc(0.7), hp = filt("highpass", 2500), g = ctx.createGain();
+  env(g, t, 0.05, 0.05, sec);
+  s.connect(hp); hp.connect(g); g.connect(d); s.start(t); s.stop(t + sec + 0.2);
+  for (let i = 0; i < sec * 14; i++) burst({ t: t + Math.random() * sec, type: "highpass", freq: 3000, d: 0.004, gain: 0.25, dest: d });
+  // «голос»: пила через полосовой фильтр, высота гуляет как речь
+  for (let i = 0; i < sec * 3; i++) {
+    const tt = t + 0.6 + i / 3 + Math.random() * 0.08, f = 110 + Math.random() * 50;
+    const o = ctx.createOscillator(), gg = ctx.createGain(), bp = filt("bandpass", 600 + Math.random() * 500, 4);
+    o.type = "sawtooth"; o.frequency.setValueAtTime(f, tt); o.frequency.linearRampToValueAtTime(f * (0.85 + Math.random() * 0.3), tt + 0.28);
+    env(gg, tt, 0.04, 0.12, 0.24);
+    o.connect(bp); bp.connect(gg); gg.connect(d); o.start(tt); o.stop(tt + 0.32);
+  }
+};
+
 // Постоянный звук, который можно двигать (жужжание механизма совы)
 export function movingLoop() {
   if (!ctx) return null;

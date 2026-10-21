@@ -16,7 +16,7 @@ const SONG = ["mid", "low", "high", "high", "low", "mid"];
 export const level = {
   id: "chapter3",
   title: { ru: "Глава 3 · Часовая башня", en: "Chapter 3 · The Clock Tower" },
-  next: null,
+  next: "chapter4",
 
   // b — основание башни, r — зеркальный зал, k — зал механизма, u — лестница в обсерваторию
   map: [
@@ -171,8 +171,8 @@ export const level = {
   ending: {
     title: { ru: "Глава 3 пройдена!", en: "Chapter 3 complete!" },
     text: {
-      ru: "Лестница привела Роберта на самый верх башни. Перед ним — дверь в обсерваторию, а из-за неё доносится знакомый голос:\n\n«Роберт? Это ты? Я знал, что ты справишься!»\n\nПродолжение следует: Глава 4 — «Обсерватория».",
-      en: "The stairs led Robert to the very top of the tower. In front of him is the door to the observatory, and from behind it comes a familiar voice:\n\n“Robert? Is that you? I knew you could do it!”\n\nTo be continued: Chapter 4 — “The Observatory”.",
+      ru: "Лестница привела Роберта на самый верх башни. Перед ним — дверь в обсерваторию, а из-за неё доносится знакомый голос:\n\n«Роберт? Это ты? Я знал, что ты справишься!»\n\nДальше: Глава 4 — «Обсерватория».",
+      en: "The stairs led Robert to the very top of the tower. In front of him is the door to the observatory, and from behind it comes a familiar voice:\n\n“Robert? Is that you? I knew you could do it!”\n\nNext: Chapter 4 — “The Observatory”.",
     },
   },
 };
