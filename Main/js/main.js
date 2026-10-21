@@ -256,7 +256,8 @@ async function jumpscare(who) {
   await new Promise((r) => setTimeout(r, 650));
   document.body.classList.remove("scare");
   who.onScare?.(false);
-  parent.add(m); m.position.copy(pos); m.rotation.copy(rot); m.scale.copy(sc);
+  if (parent) parent.add(m); else m.removeFromParent();
+  m.position.copy(pos); m.rotation.copy(rot); m.scale.copy(sc);
   scaring = false;
 }
 

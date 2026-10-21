@@ -677,6 +677,14 @@ export function drawSymbol(ctx, s, x, y, R, chalk = false) {
     ctx.beginPath(); ctx.arc(0, 0, R * 0.8, Math.PI * 0.3, Math.PI * 1.7, false);
     ctx.bezierCurveTo(-R * 0.15, -R * 0.55, -R * 0.15, R * 0.55, Math.cos(Math.PI * 0.3) * R * 0.8, Math.sin(Math.PI * 0.3) * R * 0.8);
     chalk ? ctx.stroke() : ctx.fill();
+  } else if (s === "comet") {
+    ctx.beginPath(); ctx.arc(R * 0.35, -R * 0.35, R * 0.3, 0, 7); chalk ? ctx.stroke() : ctx.fill();
+    ctx.lineWidth = Math.max(ctx.lineWidth, R * 0.12);
+    for (const k of [-0.25, 0, 0.25]) { ctx.beginPath(); ctx.moveTo(R * 0.15, -R * 0.15 + k * R); ctx.lineTo(-R * 0.85, R * 0.85 + k * R * 0.6); ctx.stroke(); }
+  } else if (s === "planet") {
+    ctx.beginPath(); ctx.arc(0, 0, R * 0.48, 0, 7); chalk ? ctx.stroke() : ctx.fill();
+    ctx.lineWidth = Math.max(ctx.lineWidth, R * 0.1);
+    ctx.beginPath(); ctx.ellipse(0, 0, R * 0.95, R * 0.28, -0.35, 0, 7); ctx.stroke();
   } else if (s === "star") {
     ctx.beginPath();
     for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2 - Math.PI / 2, rr = k % 2 ? R * 0.4 : R * 0.95; k ? ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr) : ctx.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); }

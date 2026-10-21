@@ -76,6 +76,8 @@ export function buildDoor(def, G) {
   else if (lock.type === "levers") leverLock(door, lock, lockG, G, brass);
   else if (lock.type === "bells") bellLock(door, lock, lockG, G, brass);
   else if (lock.type === "beam") beamLock(door, lock, lockG, G, brass);
+  else if (lock.type === "wires") wiresLock(door, lock, lockG, G, brass);
+  else if (lock.type === "socket") socketLock(door, lock, lockG, G, brass);
 
   // Нажатие на саму створку
   G.onTap(leaf, () => {
@@ -92,6 +94,11 @@ export function buildDoor(def, G) {
     else if (lock.type === "levers") G.say("lockedLevers", null, 2600);
     else if (lock.type === "bells") G.say("lockedBells", null, 2600);
     else if (lock.type === "beam") G.say("lockedBeam", null, 2800);
+    else if (lock.type === "wires") G.say("lockedWires", null, 2800);
+    else if (lock.type === "socket") {
+      if (G.has(lock.item) && door.useKey) return door.useKey();
+      G.say("lockedSocket", null, 2800);
+    }
     return true;
   }, { owner: id });
 
@@ -102,6 +109,8 @@ export function buildDoor(def, G) {
     levers: { pos: [0.05, 1.22, 0.75], target: [0.05, 1.12, 0] },
     bells: { pos: [0, 1.45, 1.0], target: [0, 1.4, 0] },
     beam: { pos: [0, 1.35, 0.8], target: [0, 1.3, 0] },
+    wires: { pos: [0, 1.22, 0.72], target: [0, 1.2, 0] },
+    socket: { pos: [0.3, 1.1, 0.6], target: [0.3, 1.05, 0] },
   };
   if (!door.isOpen) G.addInspect(id, g, views[lock.type] || views.key, null, () => !door.isOpen);
   return door;
@@ -365,4 +374,107 @@ function beamLock(door, lock, lg, G, brass) {
     setTimeout(() => { sfx.unlock(G.worldPos(lg)); door.open(); }, 1500);
   });
   G.every((dt, time) => { crystal.rotation.y = time * 0.6; });
+}
+
+// Замки можно ставить и на шкафы/ящики (см. props4.js)
+export const LOCKS = { key: keyLock, code: codeLock, wires: wiresLock, socket: socketLock };
+export { hitProxyBox };
+
+const WIRE_COLORS = { red: "#c8302a", blue: "#2a5ad0", yellow: "#e8b820", green: "#2aa048", white: "#e8e8e0", black: "#1a1a1a", orange: "#e87020", purple: "#8a3ac0" };
+
+// Провода: соедини цветные клеммы слева с символами справа
+function wiresLock(door, lock, lg, G, brass) {
+  const colors = lock.colors, symbols = lock.symbols, n = colors.length;
+  const y0 = lock.y ?? 1.2, z = 0.03, sp = Math.min(0.1, 0.42 / n);
+  const panelMat = T.metal("#3a3a3e", 0.6);
+  rbox(0.6, n * sp + 0.12, 0.025, 0.015, panelMat, 0, y0, z + 0.01, lg);
+  box(0.5, n * sp + 0.06, 0.004, T.plain("#151518", 0.9), 0, y0, z + 0.024, lg);
+  const rowY = (i) => y0 + ((n - 1) / 2 - i) * sp;
+  const left = [], right = [];
+  colors.forEach((c, i) => {
+    const g = new THREE.Group(); g.position.set(-0.2, rowY(i), z + 0.04); lg.add(g);
+    const mat = new THREE.MeshStandardMaterial({ color: WIRE_COLORS[c] || c, roughness: 0.4, emissive: WIRE_COLORS[c] || c, emissiveIntensity: 0.05 });
+    const knob = new THREE.Mesh(new THREE.SphereGeometry(0.022, 14, 10), mat); g.add(knob);
+    const stub = cyl(0.008, 0.008, 0.06, mat, -0.04, 0, -0.005, g, 6); stub.rotation.z = Math.PI / 2;
+    hitProxyBox(g, 0.08, sp * 0.9, 0.06).position.z = 0;
+    left.push({ c, g, mat, knob, to: null });
+  });
+  symbols.forEach((sym, i) => {
+    const g = new THREE.Group(); g.position.set(0.2, rowY(i), z + 0.035); lg.add(g);
+    const post = cyl(0.026, 0.026, 0.02, brass, 0, 0, 0, g, 18); post.rotation.x = Math.PI / 2;
+    const face = new THREE.Mesh(new THREE.CircleGeometry(0.025, 20), new THREE.MeshStandardMaterial({ map: T.symbolTexture(sym), metalness: 0.6, roughness: 0.35 }));
+    face.position.z = 0.011; g.add(face);
+    hitProxyBox(g, 0.08, sp * 0.9, 0.06).position.z = 0;
+    right.push({ sym, g });
+  });
+  let sel = null;
+  const wires = new THREE.Group(); lg.add(wires);
+  const redraw = () => {
+    wires.clear();
+    for (const L of left) {
+      if (L.to == null) continue;
+      const a = new THREE.Vector3(-0.17, L.g.position.y, z + 0.045), b = new THREE.Vector3(0.17, right[L.to].g.position.y, z + 0.045);
+      const mid = a.clone().lerp(b, 0.5).add(new THREE.Vector3(0, -0.04, 0.05));
+      const tube = new THREE.Mesh(new THREE.TubeGeometry(new THREE.QuadraticBezierCurve3(a, mid, b), 16, 0.007, 6), new THREE.MeshStandardMaterial({ color: WIRE_COLORS[L.c] || L.c, roughness: 0.5 }));
+      tube.userData.noRay = true;
+      wires.add(tube);
+    }
+  };
+  const solvedNow = () => left.every((L) => L.to != null && right[L.to].sym === lock.answer[L.c]);
+  const select = (L) => {
+    if (sel) { sel.knob.scale.setScalar(1); sel.mat.emissiveIntensity = 0.05; }
+    sel = L;
+    if (L) { L.knob.scale.setScalar(1.5); L.mat.emissiveIntensity = 0.8; }
+  };
+  left.forEach((L) => G.onTap(L.g, () => {
+    if (door.isOpen || door.solving) return false;
+    if (L.to != null) { L.to = null; redraw(); sfx.click(G.worldPos(L.g), 0.8); }
+    select(sel === L ? null : L); sfx.click(G.worldPos(L.g), 1.2);
+    return true;
+  }, { owner: door.def.id }));
+  right.forEach((Rt, ri) => G.onTap(Rt.g, () => {
+    if (door.isOpen || door.solving) return false;
+    if (!sel) { G.say("wiresPickLeft", null, 2200); return true; }
+    for (const L of left) if (L.to === ri) L.to = null; // в одно гнездо — один провод
+    sel.to = ri; select(null); redraw();
+    sfx.metal(G.worldPos(Rt.g));
+    if (left.every((L) => L.to != null)) {
+      if (solvedNow()) {
+        door.solving = true;
+        setTimeout(() => { sfx.unlock(G.worldPos(lg)); door.open(); }, 700);
+      } else {
+        sfx.wrong(G.worldPos(lg)); G.say("wiresWrong", null, 2600);
+      }
+    }
+    return true;
+  }, { owner: door.def.id }));
+  if (door.isOpen) { left.forEach((L) => { L.to = symbols.indexOf(lock.answer[L.c]); }); redraw(); }
+}
+
+// Гнездо для предохранителя (или другой детали)
+function socketLock(door, lock, lg, G, brass) {
+  const x = 0.3, y = 1.05, z = 0.03;
+  rbox(0.16, 0.26, 0.04, 0.01, T.metal("#3a3a3e", 0.55), x, y, z + 0.01, lg);
+  box(0.06, 0.12, 0.03, T.plain("#050505", 1), x, y, z + 0.025, lg);
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.015, 10, 8), new THREE.MeshStandardMaterial({ color: "#600", emissive: "#f00", emissiveIntensity: 0.3 }));
+  lamp.position.set(x, y + 0.1, z + 0.04); lg.add(lamp);
+  const fuse = new THREE.Group(); fuse.visible = false; fuse.position.set(x, y, z + 0.06); lg.add(fuse);
+  cyl(0.018, 0.018, 0.1, new THREE.MeshStandardMaterial({ color: "#d8e0e8", transparent: true, opacity: 0.7, roughness: 0.1 }), 0, 0, 0, fuse, 12);
+  for (const s of [-1, 1]) cyl(0.02, 0.02, 0.018, brass, 0, s * 0.055, 0, fuse, 12);
+  const tap = () => {
+    if (door.isOpen || door.solving) return false;
+    if (!G.has(lock.item)) { sfx.locked(G.worldPos(lg)); G.say("lockedSocket", null, 2600); return true; }
+    door.solving = true;
+    G.take(lock.item);
+    fuse.visible = true;
+    G.tween(0.4, (k) => { fuse.position.z = z + 0.06 - 0.03 * k; }, () => {
+      sfx.metal(G.worldPos(lg));
+      lamp.material.color.set("#0a0"); lamp.material.emissive.set("#0f0"); lamp.material.emissiveIntensity = 2;
+      setTimeout(() => { sfx.unlock(G.worldPos(lg)); door.open(); }, 600);
+    });
+    return true;
+  };
+  G.onTap(lg, tap, { owner: door.def.id });
+  door.useKey = tap;
+  if (door.isOpen) { fuse.visible = true; lamp.material.emissive.set("#0f0"); }
 }

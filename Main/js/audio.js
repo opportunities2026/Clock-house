@@ -423,6 +423,24 @@ Object.assign(sfx, {
   },
 });
 
+// Писк механической мыши и топот стаи
+sfx.squeak = function (pos) {
+  if (!ctx) return;
+  const d = out(pos, 0.2), t = ctx.currentTime, f = 2600 + Math.random() * 1600;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = "square";
+  o.frequency.setValueAtTime(f, t); o.frequency.linearRampToValueAtTime(f * 1.3, t + 0.05); o.frequency.linearRampToValueAtTime(f * 0.9, t + 0.12);
+  env(g, t, 0.005, 0.06, 0.12);
+  const bp = filt("bandpass", f, 3); o.connect(bp); bp.connect(g); g.connect(d); o.start(t); o.stop(t + 0.15);
+  for (let i = 0; i < 4; i++) burst({ t: t + i * 0.03, type: "highpass", freq: 4000, d: 0.01, gain: 0.12, dest: d });
+};
+sfx.squeakSwarm = function (pos) {
+  if (!ctx) return;
+  for (let i = 0; i < 10; i++) setTimeout(() => sfx.squeak(pos), i * 70 + Math.random() * 50);
+  const d = out(pos, 0.6), t = ctx.currentTime;
+  for (let i = 0; i < 30; i++) burst({ t: t + i * 0.04, type: "bandpass", freq: 3000 + Math.random() * 2000, q: 3, d: 0.015, gain: 0.25, dest: d });
+};
+
 // Крик для скримера — громкий и резкий
 sfx.scream = function (pos) {
   if (!ctx) return;
