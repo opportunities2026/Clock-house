@@ -108,6 +108,7 @@ export class Crow extends Chaser {
     const [tx, tz] = this.trapPos();
     this.mesh.position.set(tx, 0.75, tz);
     this.state = "trapped"; this.vel.set(0, 0);
+    this.mesh.scale.setScalar(0.8);
     this.yaw = this.cfg.trapYaw || 0;
     this.onAlert(false);
   }
@@ -142,7 +143,7 @@ export class Crow extends Chaser {
       if (this.flapTimer <= 0) { this.flapTimer = chasing ? 0.42 : 0.9; sfx.flap(p.clone()); sfx.flap(p.clone()); }
     } else {
       // сидит в клетке, крылья сложены, злобно дёргает головой
-      for (const w of this.wings) { w.pivot.rotation.z = w.s * -0.5; w.pivot.rotation.y = -w.s * 1.2; }
+      for (const w of this.wings) { w.pivot.rotation.z = w.s * -0.15; w.pivot.rotation.y = w.s * 1.35; } // крылья сложены вдоль спины
       this.head.rotation.y = Math.sin(time * 3) * 0.4 + (Math.sin(time * 0.5) > 0.9 ? Math.sin(time * 30) * 0.2 : 0);
       this.jaw.rotation.x = Math.max(0, Math.sin(time * 1.3)) * 0.3;
     }

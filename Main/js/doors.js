@@ -170,9 +170,9 @@ function secretDoor(def, G, g) {
   const brickG = new THREE.Group(); brickG.position.set(bx, by, bz); spot.add(brickG);
   const brick = box(0.23, 0.068, 0.1, brickMat, 0, 0, -0.04, brickG);
   // скважина за кирпичом
-  const hole = box(0.23, 0.068, 0.01, T.plain("#0a0806", 1), bx, by, CELL / 2 - 0.0, spot);
+  const hole = box(0.23, 0.068, 0.01, T.plain("#0a0806", 1), bx, by, CELL / 2 + 0.004, spot);
   hole.visible = false;
-  const keyhole = new THREE.Group(); keyhole.position.set(bx, by, CELL / 2 - 0.02); spot.add(keyhole); keyhole.visible = false;
+  const keyhole = new THREE.Group(); keyhole.position.set(bx, by, CELL / 2 + 0.012); spot.add(keyhole); keyhole.visible = false;
   cyl(0.022, 0.022, 0.012, T.metal("#c09a5c", 0.3), 0, 0, 0, keyhole, 16).rotation.x = Math.PI / 2;
   box(0.008, 0.024, 0.014, T.plain("#050403", 1), 0, -0.004, 0.002, keyhole);
   const pulled = () => G.is("pulled:" + def.id);
@@ -200,8 +200,8 @@ function secretDoor(def, G, g) {
     }
     if (!G.has(lock.item)) { sfx.locked(G.worldPos(keyhole)); G.say("keyholeHidden", null, 2600); return true; }
     G.take(lock.item);
-    const k = keyMesh(); k.rotation.y = Math.PI / 2; k.position.set(bx, by, CELL / 2 + 0.05); slab.add(k);
-    G.tween(0.5, (t) => { k.position.z = CELL / 2 + 0.05 - 0.04 * t; }, () => G.tween(0.5, (t) => { k.rotation.z = (Math.PI / 2) * t; }, () => { sfx.unlock(G.worldPos(keyhole)); open(); }));
+    const k = keyMesh(); k.rotation.y = Math.PI / 2; k.position.set(bx, by, CELL / 2 + 0.07); slab.add(k);
+    G.tween(0.5, (t) => { k.position.z = CELL / 2 + 0.07 - 0.04 * t; }, () => G.tween(0.5, (t) => { k.rotation.z = (Math.PI / 2) * t; }, () => { sfx.unlock(G.worldPos(keyhole)); open(); }));
     return true;
   };
   G.onTap(brickG, tap, { owner: def.id });

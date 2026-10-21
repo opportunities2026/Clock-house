@@ -45,7 +45,9 @@ Object.assign(BUILDERS, {
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(0.04, 0.72, 0.04, m.dark, sx * 0.34, 0.36, sz * 0.24, g);
     blobShadow(0.8, 0.6, g, 0.45);
     const wood = T.woodMaterial("#2a1a10", { seed: 66, vertical: false, rough: 0.4 });
-    box(W, 0.14, W, wood, 0, y0 + 0.07, 0, g);
+    box(W, 0.012, W, wood, 0, y0 + 0.006, 0, g);
+    for (const s of [-1, 1]) { box(W, 0.14, 0.014, wood, 0, y0 + 0.07, s * (W / 2 - 0.007), g); box(0.014, 0.14, W, wood, s * (W / 2 - 0.007), y0 + 0.07, 0, g); }
+    box(W - 0.03, 0.004, W - 0.03, T.fabricMaterial("#1a2a4a"), 0, y0 + 0.014, 0, g);
     const lid = new THREE.Group(); lid.position.set(0, y0 + 0.14, -W / 2); g.add(lid);
     rbox(W + 0.02, 0.03, W + 0.02, 0.008, wood, 0, 0.015, W / 2, lid);
     const flag = def.flag || "open:" + def.id;
@@ -146,9 +148,11 @@ Object.assign(BUILDERS, {
     const twig = T.plain("#3a2a1a", 0.9), wire = T.metal("#6a6a70", 0.4);
     const R = def.r || 1.0;
     for (let i = 0; i < 70; i++) {
-      const a = r() * Math.PI * 2, rr = R * (0.65 + r() * 0.4), len = 0.4 + r() * 0.6;
-      const t = cyl(0.012, 0.016, len, r() < 0.2 ? wire : twig, Math.cos(a) * rr, 0.05 + r() * 0.3, Math.sin(a) * rr, g, 4);
-      t.rotation.set(Math.PI / 2 + (r() - 0.5) * 0.6, 0, a + Math.PI / 2 + (r() - 0.5) * 0.8);
+      // ветки лежат по кругу, как в настоящем гнезде
+      const a = r() * Math.PI * 2, rr = R * (0.7 + r() * 0.3), len = R * (0.5 + r() * 0.6);
+      const t = cyl(0.012, 0.016, len, r() < 0.2 ? wire : twig, Math.cos(a) * rr, 0.04 + r() * R * 0.3, Math.sin(a) * rr, g, 4);
+      t.rotation.order = "YXZ";
+      t.rotation.set(Math.PI / 2 + (r() - 0.5) * 0.3, -a + (r() - 0.5) * 0.5, 0);
     }
     const bed = new THREE.Mesh(new THREE.CircleGeometry(R * 0.75, 24), T.plain("#2a1e14", 1)); bed.rotation.x = -Math.PI / 2; bed.position.y = 0.06; g.add(bed);
     const n = def.shiny || 0;

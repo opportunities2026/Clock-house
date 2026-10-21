@@ -261,7 +261,7 @@ Object.assign(BUILDERS, {
     const ring = new THREE.Mesh(new THREE.TorusGeometry(R, 0.1, 10, 40), stone); ring.rotation.x = Math.PI / 2; ring.position.y = Hb; g.add(ring);
     const wall = new THREE.Mesh(new THREE.CylinderGeometry(R + 0.05, R + 0.1, Hb, 40, 1, true), stone); wall.position.y = Hb / 2; g.add(wall);
     const inner = new THREE.Mesh(new THREE.CylinderGeometry(R - 0.07, R - 0.07, Hb, 40, 1, true), new THREE.MeshStandardMaterial({ color: "#3a3a34", roughness: 0.9, side: THREE.BackSide })); inner.position.y = Hb / 2; g.add(inner);
-    const bottom = new THREE.Mesh(new THREE.CircleGeometry(R - 0.06, 40), new THREE.MeshStandardMaterial({ color: "#2e3a30", roughness: 0.8 })); bottom.rotation.x = -Math.PI / 2; bottom.position.y = 0.05; g.add(bottom);
+    const bottom = new THREE.Mesh(new THREE.CircleGeometry(R - 0.06, 40), new THREE.MeshStandardMaterial({ color: "#56625a", roughness: 0.8 })); bottom.rotation.x = -Math.PI / 2; bottom.position.y = 0.05; g.add(bottom);
     // колонна и механическая рыба
     cyl(0.12, 0.18, 1.1, stone, 0, 0.55, 0, g, 16);
     cyl(0.32, 0.28, 0.08, stone, 0, 1.12, 0, g, 24);
@@ -282,7 +282,7 @@ Object.assign(BUILDERS, {
     // ключ на дне
     let key = null;
     if (def.item) {
-      key = itemMesh(def.item, G.items); key.position.set(0.5, 0.06, 0.35); key.rotation.y = 0.7; g.add(key);
+      key = itemMesh(def.item, G.items); key.position.set(-0.5, 0.07, -0.35); key.rotation.y = 0.7; key.scale.setScalar(1.3); g.add(key);
       pickable(G, key, def.item, def.id, () => level < 0.05);
     }
     G.every((dt, time) => { wtex.offset.set(time * 0.03, time * 0.02); fish.rotation.z = Math.sin(time * 0.8) * 0.05; });
@@ -292,7 +292,7 @@ Object.assign(BUILDERS, {
       sfx.drain(G.worldPos(water), 4);
       G.tween(4, (k) => { level = 1 - k; apply(); });
     });
-    G.addInspect(def.id, g, { pos: [0.9, 1.7, 1.5], target: [0.3, 0.1, 0.2] });
+    G.addInspect(def.id, g, { pos: [0, 2.4, 0.9], target: [-0.3, 0, -0.3] });
     return { group: g, w: 2.3, d: 2.3 };
   },
 
