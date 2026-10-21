@@ -99,6 +99,7 @@ let inspect = null;      // текущий осматриваемый предм
 let camAnim = null;      // анимация камеры при входе/выходе из осмотра
 let uiBusy = false;      // открыта записка или меню — 3D не реагирует
 let owl = null;          // Страж (только во второй главе)
+const chasers = [];      // все, кто может гнаться за Робертом
 const flagListeners = {};
 const afterBuildHooks = [];
 let heldLantern = null;
@@ -239,12 +240,32 @@ function onLost() {
   document.body.classList.remove("chased");
   if (inspect?.hide) setTimeout(() => sfx.breath(false, 2), 400);
 }
-async function onCaught() {
+// Скример: тот, кто поймал, с криком бросается прямо в экран
+let shake = 0, scaring = false;
+async function jumpscare(who) {
+  scaring = true;
+  const m = who.scareObject ? who.scareObject() : who.mesh;
+  const parent = m.parent, pos = m.position.clone(), rot = m.rotation.clone(), sc = m.scale.clone();
+  camera.add(m);
+  m.position.set(0, -0.12, -1.8); m.rotation.set(0.15, 0, 0); m.scale.setScalar(who.scareScale || 1.1);
+  who.onScare?.(true);
+  sfx.scream(camera.position.clone());
+  document.body.classList.add("scare");
+  shake = 1;
+  await new Promise((r) => { G.tween(0.18, (k) => { m.position.z = -1.8 + 1.35 * k; m.position.y = -0.12 + 0.05 * Math.sin(k * 9); }, r); });
+  await new Promise((r) => setTimeout(r, 650));
+  document.body.classList.remove("scare");
+  who.onScare?.(false);
+  parent.add(m); m.position.copy(pos); m.rotation.copy(rot); m.scale.copy(sc);
+  scaring = false;
+}
+
+async function onCaught(who = owl) {
   chased = false;
   document.body.classList.remove("chased");
   uiBusy = true; controls.reset();
-  sfx.owlScreech(camera.position.clone());
-  await UI.fade(true, 700);
+  await jumpscare(who);
+  await UI.fade(true, 500);
   const cp = [...(level.checkpoints || [])].reverse().find((c) => !c.flag || state.flags.has(c.flag)) || level.start;
   player.x = cp.x * CELL; player.z = cp.z * CELL;
   player.yaw = THREE.MathUtils.degToRad(cp.angle || 0); player.pitch = 0;
@@ -252,7 +273,7 @@ async function onCaught() {
   if (heldLantern) heldLantern.visible = true;
   controls.walkEnabled = true;
   playerCamera(camera);
-  owl.reset();
+  chasers.forEach((c) => c.reset());
   await new Promise((r) => setTimeout(r, 600));
   await UI.fade(false, 700);
   uiBusy = false;
@@ -293,12 +314,10 @@ function buildLevel() {
   if (down) { const glow = new THREE.PointLight("#6a8aff", 4, 6, 2); glow.position.set(down[0], -1.6, down[1]); scene.add(glow); }
   if (up) { const glow = new THREE.PointLight("#ffc070", 6, 7, 2); glow.position.set(up[0], 4.2, up[1]); scene.add(glow); }
 
+  const getPlayer = () => ({ x: player.x, z: player.z, hidden: !!inspect?.hide, running: player.running });
   if (level.owl) {
-    owl = new Owl({
-      cfg: level.owl, world, G, scene,
-      getPlayer: () => ({ x: player.x, z: player.z, hidden: !!inspect?.hide, running: player.running }),
-      onSpotted, onLost, onCaught,
-    });
+    owl = new Owl({ cfg: level.owl, world, G, scene, getPlayer, onSpotted, onLost, onCaught: () => onCaught(owl) });
+    chasers.push(owl);
   }
 
   scene.updateMatrixWorld(true);
@@ -570,7 +589,7 @@ function frame(now) {
     if (k >= 1) { tweens.splice(i, 1); tw.done?.(); }
   }
   for (const u of updaters) u(dt, clock);
-  if (owl && !paused && !ended) owl.update(uiBusy ? 0 : dt, clock);
+  if (!paused && !ended && !scaring) for (const c of chasers) c.update(uiBusy ? 0 : dt, clock);
   if (chased) {
     chaseBreath -= dt;
     if (chaseBreath <= 0) { chaseBreath = 2.6; sfx.breath(true, 2); }
@@ -578,6 +597,12 @@ function frame(now) {
   for (const f of G.flames) { const s = 0.85 + Math.random() * 0.3; f.scale.set(s, 2 * s, s); }
   for (const l of lights) if (l.userData.flicker) l.intensity = l.userData.base * (1 - l.userData.flicker + Math.random() * l.userData.flicker * 2);
   updateCamera(dt);
+  // тряска экрана: при скримере и когда преследователь совсем рядом
+  let near = 0;
+  for (const c of chasers) if (c.state === "chase" && c.mesh) near = Math.max(near, 1 - c.mesh.position.distanceTo(camera.position) / 4);
+  const sh = Math.max(shake, near * 0.35);
+  if (sh > 0.01) camera.position.add(new THREE.Vector3((Math.random() - 0.5) * 0.08 * sh, (Math.random() - 0.5) * 0.08 * sh, 0));
+  shake = Math.max(0, shake - dt * 1.5);
   updateAim(dt);
   updateListener(camera);
   tickAudio();

@@ -423,6 +423,22 @@ Object.assign(sfx, {
   },
 });
 
+// Крик для скримера — громкий и резкий
+sfx.scream = function (pos) {
+  if (!ctx) return;
+  const d = out(null, 0.6), t = ctx.currentTime;
+  for (const [f0, f1, type, g] of [[700, 1900, "sawtooth", 0.35], [520, 1500, "square", 0.18], [1400, 2600, "sawtooth", 0.15]]) {
+    const o = ctx.createOscillator(), gg = ctx.createGain(), bp = filt("bandpass", 1600, 0.8);
+    o.type = type;
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + 0.12); o.frequency.exponentialRampToValueAtTime(f0 * 0.7, t + 0.8);
+    const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 38; lg.gain.value = 120; lfo.connect(lg); lg.connect(o.frequency);
+    gg.gain.setValueAtTime(0.0001, t); gg.gain.exponentialRampToValueAtTime(g, t + 0.02); gg.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+    o.connect(bp); bp.connect(gg); gg.connect(d); o.start(t); lfo.start(t); o.stop(t + 0.95); lfo.stop(t + 0.95);
+  }
+  burst({ t, type: "highpass", freq: 1200, d: 0.7, gain: 0.5, dest: d });
+  tone({ t, freq: 60, to: 30, d: 0.6, gain: 0.7, dest: d });
+};
+
 // Постоянный звук, который можно двигать (жужжание механизма совы)
 export function movingLoop() {
   if (!ctx) return null;

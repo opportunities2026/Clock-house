@@ -222,3 +222,7 @@ body.chased #vignette {
 .slot { position: relative; }
 .slot .badge { position: absolute; right: 4px; bottom: 2px; font: bold 16px Georgia, serif; color: #f3d38a; text-shadow: 0 1px 2px #000; }
 .slot.selected { border-color: #f3d38a; box-shadow: 0 0 0 2px #f3d38a, 0 0 16px rgba(243, 211, 138, .6); background: radial-gradient(circle at 50% 35%, rgba(255,230,180,.3), rgba(0,0,0,.2)); }
+
+/* скример: красная вспышка */
+body.scare #vignette { background: radial-gradient(ellipse at center, rgba(255,40,10,0.25) 0%, rgba(120,0,0,0.85) 100%); animation: scareFlash .12s steps(2) infinite; }
+@keyframes scareFlash { 50% { opacity: 0.4; } }
